@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reliabilität – interaktiv</title>
+<style>
+:root{
+  color-scheme: light;
+  --page:#f9f9f7; --surface:#fcfcfb; --ink:#0b0b0b; --ink2:#52514e; --muted:#898781;
+  --grid:#e1e0d9; --axis:#c3c2b7; --border:rgba(11,11,11,.10); --wash:#f0efec;
+  --blue:#2a78d6; --blue-l:#cde2fb; --blue-ink:#1c5cab;
+  --orange:#eb6834; --orange-l:#fbdccd; --orange-ink:#b4461a;
+  --aqua:#1baf7a; --band:rgba(27,175,122,.13);
+}
+@media (prefers-color-scheme: dark){
+  :root:where(:not([data-theme="light"])){
+    color-scheme: dark;
+    --page:#0d0d0d; --surface:#1a1a19; --ink:#f0efec; --ink2:#c3c2b7; --muted:#898781;
+    --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,.10); --wash:#252523;
+    --blue:#3987e5; --blue-l:#1f3a5c; --blue-ink:#86b6ef;
+    --orange:#d95926; --orange-l:#4a2a1c; --orange-ink:#f0a07e;
+    --aqua:#199e70; --band:rgba(25,158,112,.18);
+  }
+}
+*{box-sizing:border-box}
+html{font-size:15px}
+body.beamer{font-size:18px}
+body{margin:0;background:var(--page);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.45}
+.wrap{max-width:1240px;margin:0 auto;padding:20px 18px 40px}
+body.beamer .wrap{max-width:1600px}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:10px}
+h1{font-size:1.55em;margin:0 0 2px;font-weight:650;letter-spacing:-.01em}
+.sub{color:var(--ink2);margin:0;font-size:.95em}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+button{font:inherit;font-size:.9em;border:1px solid var(--border);background:var(--surface);color:var(--ink);padding:6px 12px;border-radius:8px;cursor:pointer}
+button:hover{border-color:var(--axis)}
+button.on{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.small{font-size:.8em;padding:4px 10px}
+
+.maintabs{display:flex;border-bottom:1.5px solid var(--grid);margin:4px 0 0;flex-wrap:wrap}
+.maintabs button{border:0;border-radius:0;background:none;padding:10px 18px;font-size:1em;font-weight:600;color:var(--ink2);border-bottom:3px solid transparent;margin-bottom:-1.5px}
+.maintabs button.on{color:var(--ink);border-bottom-color:var(--ink);background:none}
+.maintabs .n{display:inline-flex;width:1.5em;height:1.5em;border-radius:50%;align-items:center;justify-content:center;background:var(--wash);font-size:.8em;margin-right:6px}
+.maintabs button.on .n{background:var(--ink);color:var(--surface)}
+.area{display:none}.area.on{display:block}
+
+.grid{display:grid;gap:14px;margin-top:14px;align-items:start}
+.g2{grid-template-columns:1fr 1fr}
+.g23{grid-template-columns:2fr 3fr}
+@media (max-width:900px){.g2,.g23{grid-template-columns:1fr}}
+
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-top:14px}
+.grid .panel{margin-top:0}
+.ph{display:flex;align-items:center;gap:8px;padding:10px 12px 10px 8px}
+.tog{flex:1;display:flex;align-items:center;gap:8px;border:0;background:none;padding:2px 6px;text-align:left;font-size:1em;font-weight:620;border-radius:6px}
+.tog:hover{background:var(--wash)}
+.tog .chev{display:inline-block;width:1em;color:var(--muted);transition:transform .15s;font-size:.85em}
+.panel.open .tog .chev{transform:rotate(90deg)}
+.tog .peek{font-weight:400;color:var(--muted);font-size:.85em;margin-left:auto;padding-left:10px;text-align:right}
+.panel.open .tog .peek{display:none}
+.info{width:26px;height:26px;padding:0;border-radius:50%;font-size:.8em;font-weight:700;font-style:italic;font-family:Georgia,serif;flex:none;color:var(--ink2)}
+.info.on{background:var(--ink);color:var(--surface)}
+.infobox{display:none;margin:0 16px 10px;padding:10px 12px;border-radius:8px;background:var(--wash);font-size:.9em}
+.infobox p{margin:0 0 6px}.infobox p:last-child{margin:0}
+.panel.showinfo>.infobox{display:block}
+.pb{display:none;padding:0 16px 16px}
+.panel.open>.pb{display:block}
+.hint{color:var(--ink2);font-size:.86em;margin:0 0 10px}
+.note{font-size:.8em;color:var(--muted);margin:0}
+.sec{margin-top:10px;padding-top:10px;border-top:1px dashed var(--grid);opacity:.8}
+.sec input[type=range]{accent-color:var(--muted)}
+.sechead{font-size:.76em;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;margin-bottom:6px}
+.readonly{font-size:.9em;padding:8px 10px;border-radius:8px;background:var(--page);margin-bottom:10px}
+.deep{display:flex;align-items:center;gap:12px;margin:28px 0 0;color:var(--muted);font-size:.8em;text-transform:uppercase;letter-spacing:.07em;font-weight:600}
+.deep::after{content:"";flex:1;height:1px;background:var(--grid)}
+
+.ctl{margin-bottom:10px}
+.ctl label{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:.9em;font-weight:560}
+.ctl label small{font-weight:400;color:var(--muted)}
+.ctl .row{display:flex;gap:8px;align-items:center}
+.ctl input[type=range]{flex:1;accent-color:var(--ink);height:26px;min-width:0}
+.val{min-width:3.6em;text-align:right;font-variant-numeric:tabular-nums;font-weight:600;font-size:.92em}
+.readout{font-size:.84em;color:var(--ink2);margin-top:4px}
+select{font:inherit;font-size:.9em;padding:4px 6px;border-radius:6px;border:1px solid var(--border);background:var(--page);color:var(--ink)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 12px}
+.chips .lbl{font-size:.82em;color:var(--ink2);margin-right:2px}
+.chips button{font-size:.8em;padding:4px 10px}
+.badge{font-size:.72em;padding:1px 7px;border-radius:999px;border:1px solid var(--axis);color:var(--ink2)}
+.seg{display:inline-flex;border:1px solid var(--border);border-radius:9px;overflow:hidden;flex-wrap:wrap}
+.seg button{border:0;border-radius:0;padding:6px 14px;font-size:.88em}
+.desc{font-size:.88em;color:var(--ink2);margin:10px 0 12px}
+details.more{margin-top:6px;border-top:1px solid var(--grid);padding-top:8px}
+details.more summary{cursor:pointer;font-size:.86em;color:var(--ink2);margin-bottom:6px}
+
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.kpis.k2{grid-template-columns:repeat(2,1fr)}
+@media (max-width:620px){.kpis{grid-template-columns:1fr 1fr}}
+.kpi{border:1px solid var(--border);border-radius:10px;padding:9px 12px;background:var(--page)}
+.kpi .k{font-size:.8em;color:var(--ink2);font-weight:560;display:flex;align-items:center;gap:6px}
+.kpi .k i{display:inline-block;width:10px;height:10px;border-radius:2px;flex:none}
+.kpi .v{font-size:1.9em;font-weight:650;letter-spacing:-.02em;line-height:1.15;margin-top:2px;font-variant-numeric:tabular-nums}
+.kpi .f{font-size:.78em;color:var(--muted)}
+.take{margin-top:12px;padding:10px 12px;border-radius:8px;background:var(--page);font-size:.92em}
+.formula{font-family:"Cambria Math","STIX Two Math","Times New Roman",serif;font-size:1.05em;padding:8px 12px;border-radius:8px;background:var(--page);margin-top:8px;overflow-x:auto;white-space:nowrap}
+.formula .fr{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;margin:0 3px}
+.formula .fr>span:first-child{border-bottom:1px solid currentColor;padding:0 4px}
+.formula .fr>span:last-child{padding:0 4px}
+.steps{font-size:.9em;padding:10px 12px;border-radius:8px;background:var(--page);margin-top:8px;line-height:1.7}
+
+table.calc{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;font-size:.9em}
+.calc th,.calc td{padding:5px 8px;border-bottom:1px solid var(--grid);text-align:right}
+.calc th{font-weight:560;color:var(--ink2);font-size:.9em}
+.calc th:first-child,.calc td:first-child{text-align:left}
+.calc tr.sum td{font-weight:650;border-top:1.5px solid var(--axis)}
+.loadgrid{display:grid;grid-template-columns:1fr 1fr;gap:2px 18px}
+@media (max-width:620px){.loadgrid{grid-template-columns:1fr}}
+.loadrow{display:flex;align-items:center;gap:8px;font-size:.88em}
+.loadrow .nm{width:4.8em;color:var(--ink2);white-space:nowrap}
+.loadrow input{flex:1;accent-color:var(--ink);min-width:0}
+.loadrow .tg{font-size:.72em;padding:0 5px;border-radius:4px;color:#fff}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.84em;color:var(--ink2);margin-top:8px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;flex:none}
+
+svg{display:block;width:100%;height:auto;overflow:visible}
+svg text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;fill:var(--ink2)}
+.vbar{display:flex;height:38px;border-radius:6px;overflow:hidden;gap:2px;margin-top:6px}
+.vbar div{display:flex;align-items:center;justify-content:center;font-size:.84em;font-weight:600;white-space:nowrap;overflow:hidden;min-width:0;transition:flex .15s;color:#fff}
+
+.secret{transition:filter .25s}
+body.guess:not(.revealed) .secret{filter:blur(9px);user-select:none;pointer-events:none}
+.revealbar{display:none;margin-top:14px;padding:10px 14px;border-radius:10px;background:var(--ink);color:var(--surface);align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+body.guess .revealbar{display:flex}
+.revealbar button{background:var(--surface);color:var(--ink)}
+#tip{position:fixed;pointer-events:none;background:var(--ink);color:var(--surface);font-size:13px;padding:6px 9px;border-radius:6px;opacity:0;transition:opacity .1s;z-index:10;font-variant-numeric:tabular-nums;max-width:260px}
+dl{display:grid;grid-template-columns:max-content 1fr;gap:6px 14px;font-size:.92em;margin:0}
+dt{font-weight:600}dd{margin:0;color:var(--ink2)}
+.mini{font-size:.84em;color:var(--ink2)}
+.explain{font-size:.88em;color:var(--ink2);margin:0 0 10px;display:grid;gap:4px}
+.explain b{color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div><h1 data-t="title"></h1><p class="sub" data-t="sub"></p></div>
+  <div class="btns">
+    <button id="btnLang"></button>
+    <button id="btnAll"></button>
+    <button id="btnGuess" data-t="guess"></button>
+    <button id="btnBeamer" data-t="beamer"></button>
+  </div>
+</header>
+
+<nav class="maintabs">
+  <button data-area="test-test"><span class="n">1</span><span data-t="tab1"></span></button>
+  <button data-area="interne-konsistenz"><span class="n">2</span><span data-t="tab2"></span></button>
+</nav>
+
+<div class="revealbar"><span id="guessQ"></span><button id="btnReveal" data-t="reveal"></button></div>
+
+<!-- ======================= BEREICH 1 ======================= -->
+<div class="area" id="area-test-test">
+
+<section class="panel open" data-panel="ktt">
+  <div class="ph"><button class="tog"><span class="chev">▶</span><span data-t="pKtt"></span><span class="peek" id="peekKtt"></span></button><button class="info">i</button></div>
+  <div class="infobox" data-t="infoKtt"></div>
+  <div class="pb">
+    <div class="grid g23" style="margin-top:0">
+      <div>
+        <div class="ctl"><label><span data-t="lVarT"></span><small>σ²<sub>T</sub></small></label>
+          <div class="row"><input type="range" id="r_vt" min="0" max="4" step="0.05" style="accent-color:var(--blue)"><span class="val" id="v_vt"></span></div></div>
+        <div class="ctl"><label><span data-t="lVarE"></span><small>σ²<sub>E</sub></small></label>
+          <div class="row"><input type="range" id="r_ve" min="0" max="4" step="0.05" style="accent-color:var(--orange)"><span class="val" id="v_ve"></span></div></div>
+        <div class="vbar" id="vbar"></div>
+        <div class="formula" id="kttFormula"></div>
+        <p class="take" id="kttTake"></p>
+      </div>
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px">
+          <p class="hint" style="margin:0" data-t="hintPersons"></p>
+          <button id="btnPersons" class="small" data-t="newPersons"></button>
+        </div>
+        <svg id="persons" viewBox="0 0 600 250" role="img"></svg>
+        <div class="legend"><span><i style="background:var(--blue);height:4px;width:16px;border-radius:2px"></i><span data-t="legT"></span></span><span><i style="background:var(--ink);border-radius:50%;width:9px;height:9px"></i><span data-t="legX"></span></span><span><i style="background:var(--orange);width:4px;height:14px;border-radius:2px"></i><span data-t="legE"></span></span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="panel open" data-panel="second">
+  <div class="ph"><button class="tog"><span class="chev">▶</span><span data-t="pSecond"></span><span class="peek secret" id="peekSecond"></span></button><button class="info">i</button></div>
+  <div class="infobox" id="infoSecond"></div>
+  <div class="pb">
+    <div class="seg" id="methTabs"><button data-m="retest" data-t="mRetest"></button><button data-m="parallel" data-t="mParallel"></button><button data-m="split" data-t="mSplit"></button></div>
+    <div class="grid g2" style="margin-top:0">
+      <div>
+        <p class="desc" id="methDesc"></p>
+        <!-- Retest -->
+        <div data-meth="retest">
+          <div class="ctl"><label><span data-t="lInterval"></span><small id="intTxt"></small></label>
+            <div class="row"><input type="range" id="r_int" min="0" max="1000" step="1"></div></div>
+          <div class="ctl"><label><span data-t="lStab"></span><small data-t="lStabS"></small></label>
+            <div class="row"><input type="range" id="r_stab" min="0.2" max="0.99" step="0.01"><span class="val" id="v_stab"></span></div>
+            <div class="readout" id="stabTxt"></div></div>
+          <div class="sec"><div class="sechead" data-t="moreInfl"></div>
+            <div class="ctl"><label><span data-t="lMemory"></span><small data-t="lMemoryS"></small></label>
+              <div class="row"><input type="range" id="r_mem" min="0" max="0.7" step="0.01"><span class="val" id="v_mem"></span></div></div>
+          </div>
+        </div>
+        <!-- Parallel -->
+        <div data-meth="parallel">
+          <div class="readonly" id="formA"></div>
+          <div class="ctl"><label><span data-t="lRhoB"></span></label>
+            <div class="row"><input type="range" id="r_rb" min="0.05" max="0.99" step="0.01"><span class="val" id="v_rb"></span></div></div>
+          <div class="sec"><div class="sechead" data-t="moreInfl"></div>
+            <div class="ctl"><label><span data-t="lPar"></span><small data-t="lParS"></small></label>
+              <div class="row"><input type="range" id="r_par" min="0.5" max="1" step="0.01"><span class="val" id="v_par"></span></div></div>
+            <div class="ctl"><label><span data-t="lPractice"></span><small data-t="lPracticeS"></small></label>
+              <div class="row"><input type="range" id="r_pr" min="0" max="0.6" step="0.01"><span class="val" id="v_pr"></span></div></div>
+          </div>
+        </div>
+        <!-- Split -->
+        <div data-meth="split">
+          <div class="steps secret" id="splitSteps" style="margin-top:0"></div>
+          <div class="sec"><div class="sechead" data-t="moreInfl"></div>
+            <div class="ctl"><label><span data-t="lHalfSim"></span><small data-t="lHalfSimS"></small></label>
+              <div class="row"><input type="range" id="r_hs" min="0.5" max="1" step="0.01"><span class="val" id="v_hs"></span></div></div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="kpis secret" id="ttKpis" style="grid-template-columns:1fr"></div>
+        <p class="take secret" id="ttTake"></p>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap">
+          <span class="mini"><span data-t="sampleN"></span> <select id="s_n1"><option>30</option><option selected>100</option><option>300</option><option>1000</option></select></span>
+          <button id="btnSample1" class="small" data-t="newSample"></button>
+        </div>
+        <svg id="scatter" viewBox="0 0 420 360" role="img" style="max-width:440px;margin:6px auto 0"></svg>
+      </div>
+    </div>
+    <div id="retestCurveWrap" style="margin-top:10px">
+      <p class="hint" style="margin:0 0 4px" data-t="hintCurve"></p>
+      <div class="secret"><svg id="retestCurve" viewBox="0 0 900 230" role="img"></svg></div>
+      <div class="legend" id="curveLegend"></div>
+    </div>
+  </div>
+</section>
+
+<section class="panel" data-panel="var1">
+  <div class="ph"><button class="tog"><span class="chev">▶</span><span data-t="pVar"></span></button><button class="info">i</button></div>
+  <div class="infobox" data-t="infoVar"></div>
+  <div class="pb">
+    <div class="explain" data-t="explainVar1"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+      <span class="mini" id="varN1"></span>
+      <button id="btnMany1" class="small" data-t="manySamples"></button>
+    </div>
+    <div class="secret"><svg id="hist1" viewBox="0 0 1100 220" role="img" style="margin-top:8px"></svg></div>
+    <p class="mini secret" id="histTxt1" style="margin:6px 0 0"></p>
+  </div>
+</section>
+</div>
+
+<!-- ======================= BEREICH 2 ======================= -->
+<div class="area" id="area-interne-konsistenz">
+
+<section class="panel open" data-panel="items">
+  <div class="ph"><button class="tog"><span class="chev">▶</span><span data-t="pItems"></span><span class="peek" id="peekItems"></span></button><button class="info">i</button></div>
+  <div class="infobox" data-t="infoItems"></div>
+  <div class="pb">
+    <div class="grid g2" style="margin-top:0">
+      <div>
+        <div style="display:flex;gap:18px;flex-wrap:wrap;align-items:flex-end;margin-bottom:10px">
+          <div class="ctl" style="flex:1;min-width:200px;margin:0"><label><span data-t="lP"></span><small>p</small></label>
+            <div class="row"><input type="range" id="r_p" min="2" max="12" step="1"><span class="val" id="v_p"></span></div></div>
+          <div><div style="font-size:.9em;font-weight:560;margin-bottom:4px" data-t="lF"></div>
+            <div class="seg" id="facSeg"><button data-f="1">1</button><button data-f="2">2</button></div></div>
+        </div>
+        <div class="ctl" id="phiCtl"><label><span data-t="lPhi"></span><small>φ</small></label>
+          <div class="row"><input type="range" id="r_phi" min="0" max="1" step="0.01"><span class="val" id="v_phi"></span></div>
+          <p class="note" data-t="phiNote"></p></div>
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin:2px 0 4px">
+          <span style="font-size:.9em;font-weight:560" data-t="lLoad"></span>
+          <button id="btnEqual" class="small" data-t="equalize"></button>
+        </div>
+        <div class="loadgrid" id="loadGrid"></div>
+      </div>
+      <div><svg id="pathDiag" viewBox="0 0 460 300" role="img"></svg></div>
+    </div>
+  </div>
+</section>
+
+<section class="panel open" data-panel="alpha">
+  <div class="ph"><button class="tog"><span class="chev">▶</span><span data-t="pAlpha"></span><span class="peek secret" id="peekAlpha"></span></button><button class="info">i</button></div>
+  <div class="infobox" data-t="infoAlpha"></div>
+  <div class="pb">
+    <div class="kpis k2 secret" id="icKpis"></div>
+    <p class="take secret" id="icTake"></p>
+  </div>
+</section>
+
+<div class="deep" data-t="deep"></div>
+<div class="grid g2">
+  <section class="panel" data-panel="calc">
+    <div class="ph"><button class="tog"><span class="chev">▶</span><span data-t="pCalc"></span></button><button class="info">i</button></div>
+    <div class="infobox" data-t="infoCalc"></div>
+    <div class="pb">
+      <table class="calc" id="calcTab"></table>
+      <div class="formula secret" id="omegaCalc"></div>
+      <div class="formula secret" id="alphaCalc"></div>
+      <p class="note" id="calcNote" style="margin-top:8px"></p>
+    </div>
+  </section>
+  <section class="panel" data-panel="corr">
+    <div class="ph"><button class="tog"><span class="chev">▶</span><span data-t="pCorr"></span></button><button class="info">i</button></div>
+    <div class="infobox" data-t="infoCorr"></div>
+    <div class="pb"><svg id="heat" viewBox="0 0 440 440" role="img" style="max-width:460px;margin:0 auto"></svg></div>
+  </section>
+</div>
+<div class="grid g2">
+  <section class="panel" data-panel="omh">
+    <div class="ph"><button class="tog"><span class="chev">▶</span><span data-t="pOmh"></span></button><button class="info">i</button></div>
+    <div class="infobox" data-t="infoOmh"></div>
+    <div class="pb" id="omhBody"></div>
+  </section>
+  <section class="panel" data-panel="var2">
+    <div class="ph"><button class="tog"><span class="chev">▶</span><span data-t="pVar2"></span></button><button class="info">i</button></div>
+    <div class="infobox" data-t="infoVar2"></div>
+    <div class="pb">
+      <div class="explain" data-t="explainVar2"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+        <span class="mini"><span data-t="sampleN"></span> <select id="s_n2"><option>30</option><option selected>100</option><option>300</option><option>1000</option></select></span>
+        <span style="display:flex;gap:6px"><button id="btnSample2" class="small" data-t="newStudy"></button><button id="btnMany2" class="small" data-t="manyStudies"></button></span>
+      </div>
+      <div class="kpis k2 secret" id="sampleKpis" style="margin-top:10px"></div>
+      <div class="secret"><svg id="hist2" viewBox="0 0 560 220" role="img" style="margin-top:8px"></svg></div>
+      <p class="mini secret" id="histTxt2" style="margin:6px 0 0"></p>
+    </div>
+  </section>
+</div>
+</div>
+
+<section class="panel" data-panel="terms">
+  <div class="ph"><button class="tog"><span class="chev">▶</span><span data-t="pTerms"></span></button></div>
+  <div class="pb"><dl id="terms"></dl></div>
+</section>
+</div>
+<div id="tip"></div>
+
+<script>
+(() => {
+const $=id=>document.getElementById(id);
+const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+function rng(seed){let a=seed>>>0;return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function normals(seed,n){const r=rng(seed),out=new Float64Array(n);for(let i=0;i<n;i+=2){let u=r();if(u<1e-12)u=1e-12;const v=r(),m=Math.sqrt(-2*Math.log(u));out[i]=m*Math.cos(2*Math.PI*v);if(i+1<n)out[i+1]=m*Math.sin(2*Math.PI*v);}return out;}
+function corr(x,y){const n=x.length;let mx=0,my=0;for(let i=0;i<n;i++){mx+=x[i];my+=y[i];}mx/=n;my/=n;let sxy=0,sxx=0,syy=0;
+  for(let i=0;i<n;i++){const a=x[i]-mx,b=y[i]-my;sxy+=a*b;sxx+=a*a;syy+=b*b;}return sxy/Math.sqrt(sxx*syy);}
+const R2=(x,d=2)=>{if(!isFinite(x))return '–';const s=Math.abs(x).toFixed(d);return (x<-0.0005?'−':'')+(s.startsWith('0')?s.slice(1):s);};
+const F=(x,d=2)=>{const s=Math.abs(x).toFixed(d);return (x<-0.0005?'−':'')+s;};
+const pct=x=>Math.round(x*100)+(S.lang==='de'?' %':'%');
+const frac=(a,b)=>`<span class="fr"><span>${a}</span><span>${b}</span></span>`;
+const h=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+const S={lang:'de',area:'test-test',vt:1,ve:0.25,personSeed:7,
+  meth:'retest',stab1:0.85,interval:182,mem:0.3,rb:0.7,par:1,pr:0,hs:1,
+  n1:100,seed1:11,many1:null,manyCount1:0,manyCount2:0,
+  p:4,lam:[.8,.7,.6,.4,.6,.6,.6,.6,.6,.6,.6,.6],twoD:false,phi:.3,n2:100,seed2:21,many2:null};
+const rho=()=>{const v=S.vt+S.ve;return v>0?S.vt/v:0;};
+
+// Stabilität der wahren Werte: Korrelation der wahren Werte über 1 Jahr = stab1, exponentiell über die Zeit
+const MEM_TAU=7;
+const stab=d=>Math.pow(S.stab1,d/365);
+const memc=d=>S.mem*Math.exp(-d/MEM_TAU);
+const intToPos=d=>Math.round(Math.log(d)/Math.log(1095)*1000);
+const posToInt=p=>Math.max(1,Math.round(Math.exp(p/1000*Math.log(1095))));
+
+// ================= Texte =================
+const T={de:{
+ title:'Reliabilität – interaktiv',sub:'Wie genau misst ein Test? Test-Test-Reliabilität und interne Konsistenz (Cronbachs α, McDonalds ω) zum Ausprobieren.',
+ lang:'English',allOpen:'Alle aufklappen',allClose:'Alle zuklappen',guess:'Ratemodus',beamer:'Beamer-Modus',infoTip:'Erklärung',reveal:'Auflösen',
+ tab1:'Test-Test-Reliabilität',tab2:'Interne Konsistenz: α und ω',deep:'Zum Vertiefen',moreSettings:'Weitere Einstellungen',
+ guessQ1:'Ratemodus: Wie hoch fällt die Schätzung aus – und liegt sie über oder unter der wahren Reliabilität?',
+ guessQ2:'Ratemodus: Ist Cronbachs α hier größer, kleiner oder gleich McDonalds ω?',
+ pKtt:'Grundeinstellungen: X = T + E',
+ infoKtt:'<p><b>Klassische Testtheorie:</b> Jeder Messwert X setzt sich aus dem wahren Wert T und einem Messfehler E zusammen. Messfehler sind unsystematisch (z. B. Stimmung, mehrdeutige Items, Ankreuzfehler), haben den Erwartungswert 0 und sind unabhängig vom wahren Wert und voneinander.</p><p>Statt einzelner Werte betrachtet man Varianzen: σ²<sub>X</sub> = σ²<sub>T</sub> + σ²<sub>E</sub>. Die <b>Reliabilität</b> ist der Anteil der wahren Varianz an der Gesamtvarianz. Idealfall σ²<sub>E</sub> = 0 → Reliabilität 1; schlechtester Fall σ²<sub>T</sub> = 0 → Reliabilität 0.</p><p>In der Praxis kennt man σ²<sub>T</sub> und σ²<sub>E</sub> nicht. Deshalb wird die Reliabilität mithilfe einer zweiten Messung geschätzt (Panel darunter).</p>',
+ lVarT:'Varianz der wahren Werte',lVarE:'Fehlervarianz',
+ kttTake:(r)=>`<b>${pct(r)}</b> der beobachteten Varianz gehen auf echte Unterschiede zwischen den Personen zurück, <b>${pct(1-r)}</b> sind Messfehler.`,
+ rel:'Reliabilität',hintPersons:'12 Personen: wahrer Wert und Messwert',newPersons:'Neue Personen',legT:'wahrer Wert T',legX:'Messwert X',legE:'Messfehler E',
+ barT:'wahre Varianz',barE:'Fehlervarianz',
+ pSecond:'Schätzung über eine zweite Messung',
+ infoSecond:`<p>Weil σ²<sub>T</sub> unbekannt ist, schätzt man die Reliabilität über die <b>Korrelation zweier Messungen</b>: Rel. = cov<sub>xy</sub> / (σ<sub>x</sub>·σ<sub>y</sub>) = corr<sub>xy</sub>. Das funktioniert nur, wenn beide Messungen dieselben wahren Werte erfassen und ihre Messfehler unabhängig voneinander sind.</p><p>Die wahre Reliabilität stellst du oben in den Grundeinstellungen ein. Hier siehst du, was die jeweilige Methode daraus schätzt. Die grau dargestellten Regler sind weitere Einflüsse, die die Schätzung verzerren können. Die geschätzte Reliabilität ist der Wert in der Population; das Streudiagramm zeigt eine simulierte Stichprobe.</p>`,
+ infoRetest:`<p><b>Test-Retest:</b> Kurzes Intervall → evtl. Überschätzung durch Erinnerungs-, Lern- und Übungseffekte: Die Messfehler der beiden Durchführungen hängen dann zusammen. Langes Intervall → evtl. Unterschätzung, weil sich die wahren Werte verändern. Wie schnell das geht, hängt vom Merkmal ab: Stimmungen ändern sich von Tag zu Tag, Intelligenz bei Erwachsenen kaum.</p>`,
+ infoParallel:'<p><b>Paralleltest:</b> Zentrale Annahme: Beide Versionen messen dieselben wahren Werte. Form A hat die Reliabilität aus den Grundeinstellungen, Form B stellst du separat ein. Unterscheiden sich die Formen in ihrer Messgenauigkeit, wird die ungenauere überschätzt und die genauere unterschätzt. Unterschiedliche Inhalte senken die Korrelation (Unterschätzung). Übungs- und Transfereffekte führen zur Überschätzung; dagegen hilft ein Cross-over-Design (Gruppe 1: erst A, dann B; Gruppe 2 umgekehrt).</p>',
+ infoSplit:'<p><b>Testhalbierung:</b> Der Test wird in zwei Hälften geteilt (z. B. gerade/ungerade Items, zufällig, erste/zweite Hälfte). Zwei kürzere Tests korrelieren weniger als zwei längere – deshalb rechnet die <b>Spearman-Brown-Formel</b> die Korrelation der Hälften auf die volle Testlänge hoch (Verlängerungsfaktor k = 2). Ungleiche Hälften, etwa durch Ermüdung, führen zur Unterschätzung.</p>',
+ mRetest:'Test-Retest',mParallel:'Paralleltest',mSplit:'Testhalbierung',
+ dRetest:'Ein Test, zweimal durchgeführt – mit Abstand dazwischen.',dParallel:'Zwei möglichst gleichwertige Testversionen, zum selben Termin.',dSplit:'Ein Test, einmal durchgeführt – in zwei Hälften geteilt.',
+ lStab:'Stabilität des Merkmals',lStabS:'Korrelation der wahren Werte über 1 Jahr',moreInfl:'Weitere Einflüsse',
+ stabTxt:(s,t)=>`Über das gewählte Intervall (${t}) korrelieren die wahren Werte zu <b>${R2(s)}</b>.`,
+ formA:r=>`Reliabilität Form A: <b>${R2(r)}</b> <span style="color:var(--muted)">(aus den Grundeinstellungen)</span>`,trueIs:'wahr',
+ lInterval:'Zeitintervall',lMemory:'Erinnerungs- und Übungseffekte',lMemoryS:'wirken bei kurzem Intervall',
+ lRhoB:'Reliabilität Form B',lPar:'Gleichwertigkeit der Inhalte',lParS:'Korrelation der wahren Werte',lPractice:'Übungs- und Transfereffekte',lPracticeS:'korrelierte Fehler',
+ lHalfSim:'Gleichwertigkeit der Hälften',lHalfSimS:'z. B. Ermüdung in der 2. Hälfte',
+ splitSteps:(r,sb)=>`<div>① Korrelation der beiden Hälften: <b>r = ${R2(r)}</b></div><div>② Hochrechnen auf die volle Länge mit Spearman-Brown (k = 2):</div><div class="formula" style="margin:4px 0 0">Rel. = ${frac('k · r','1 + (k − 1) · r')} = ${frac('2 · '+R2(r),'1 + '+R2(r))} = <b>${R2(sb)}</b></div>`,
+ kEst:'Geschätzte Reliabilität',fRetest:'Korrelation Messung 1 / 2',fPar:'Korrelation Form A / B',fSB:'nach Spearman-Brown',
+ takeOver:(d)=>`Die Schätzung liegt <b>${R2(d)} zu hoch</b>.`,takeUnder:(d)=>`Die Schätzung liegt <b>${R2(d)} zu niedrig</b>.`,takeOk:'Die Schätzung trifft die wahre Reliabilität.',
+ whyMem:' Grund: Personen erinnern sich an ihre Antworten – die Messfehler sind nicht mehr unabhängig.',
+ whyChange:' Grund: Die wahren Werte haben sich zwischen den Messungen verändert.',
+ whyBoth:' Erinnerungseffekte (zu hoch) und Veränderung der wahren Werte (zu niedrig) wirken gegeneinander.',
+ whySplit:' Grund: Die Hälften messen nicht genau dasselbe.',
+ parTake:(r,a,b)=>`Die Korrelation ${R2(r)} gilt als Schätzung für <i>beide</i> Formen.`+(Math.abs(a-b)>0.03?` Die ungenauere Form (${R2(Math.min(a,b))}) wird dadurch überschätzt, die genauere (${R2(Math.max(a,b))}) unterschätzt.`:''),
+ parContent:' Ungleiche Inhalte senken die Korrelation.',parPractice:' Übungseffekte erhöhen sie.',
+ sampleN:'Stichprobengröße n:',inSample:'Stichprobe:',newSample:'Neue Stichprobe',
+ axX:{retest:'Messung 1 (z-Wert)',parallel:'Form A (z-Wert)',split:'Hälfte 1 (z-Wert)'},axY:{retest:'Messung 2 (z-Wert)',parallel:'Form B (z-Wert)',split:'Hälfte 2 (z-Wert)'},
+ hintCurve:'Erwartete Retest-Korrelation je nach Zeitintervall. Klick in die Grafik setzt das Intervall.',
+ curveLegend:'<span><i style="background:var(--ink);height:3px"></i>Retest-Korrelation</span><span><i style="background:var(--blue);height:3px"></i>wahre Reliabilität</span>',
+ over:'zu hoch',under:'zu niedrig',
+ fmtInt:d=>d<14?`${d} ${d===1?'Tag':'Tage'}`:d<60?`${Math.round(d/7)} Wochen`:d<365?`${Math.round(d/30.4)} Monate`:`${(d/365).toFixed(1).replace('.0','').replace('.',',')} ${d<548?'Jahr':'Jahre'}`,
+ ticks:[[1,'1 Tag'],[7,'1 Woche'],[30,'1 Monat'],[91,'3 Monate'],[182,'6 Monate'],[365,'1 Jahr'],[1095,'3 Jahre']],
+ pVar:'Wie stark schwankt die Schätzung?',
+ infoVar:'<p>Jede Studie zieht eine andere Stichprobe und erhält deshalb eine etwas andere Korrelation. Wie stark die Ergebnisse schwanken, hängt vor allem von der Stichprobengröße ab.</p>',
+ explainVar1:'<div>Oben siehst du <b>eine</b> simulierte Studie. Hier wird dieselbe Studie <b>200-mal</b> wiederholt, jedes Mal mit neuen Personen (aktuelle Methode und Einstellungen). Jeder Klick zieht 200 neue Studien.</div><div>Jeder Balken zeigt, wie viele der 200 Studien eine Schätzung in diesem Bereich erhalten haben. Probiere n = 30 und n = 1000 aus.</div>',
+ manySamples:'200 Studien simulieren',varN:n=>`n = ${n} pro Studie`,
+ histTxt:(lo,hi,n)=>`Bei n = ${n} liegen 95 % der Schätzungen zwischen <b>${R2(lo)}</b> und <b>${R2(hi)}</b>.`,histEmpty:'Klicke auf „200 Studien simulieren“.',
+ histX:'geschätzte Reliabilität',histExp:'erwartet',histTrue:'wahr',histTrueA:'wahr A',histTrueB:'wahr B',
+ pItems:'Items & Faktormodell',
+ infoItems:'<p><b>Interne Konsistenz</b> braucht keine zweite Messung: Man betrachtet, wie stark die Items eines Tests miteinander zusammenhängen.</p><p>Im <b>Faktormodell</b> hängt jedes Item mit einem latenten Merkmal τ zusammen. Die <b>Faktorladung λ</b> sagt, wie stark – lies sie als „Wie gut misst dieses Item das Merkmal?“. Bei standardisierten Items ist λ² der Anteil der Itemvarianz, der auf das Merkmal zurückgeht, und e² = 1 − λ² der Fehleranteil.</p><p>Mit <b>2 Faktoren</b> messen die Items zwei verschiedene, aber korrelierte Facetten (z. B. finanzielle und soziale Risikobereitschaft).</p>',
+ lP:'Anzahl Items',lF:'Faktoren',lPhi:'Korrelation der beiden Faktoren',phiNote:'Erste Hälfte der Items misst Faktor 1, zweite Hälfte Faktor 2.',
+ lLoad:'Faktorladungen λ',equalize:'Alle gleich setzen',item:'Item',
+ pAlpha:'Cronbachs α und McDonalds ω',
+ infoAlpha:'<p><b>Cronbachs α</b> setzt <b>τ-Äquivalenz</b> voraus: Alle Items hängen gleich stark mit dem Merkmal zusammen. Ist das nicht so, unterschätzt α die Reliabilität.</p><p><b>McDonalds ω<sub>total</sub></b> erlaubt unterschiedliche Ladungen (τ-kongenerisch) und berechnet die Reliabilität direkt aus dem Faktormodell. Wenn das eindimensionale Modell stimmt, gilt ω ≥ α – gleich sind beide genau dann, wenn alle Ladungen gleich sind.</p><p>Beide setzen <b>Eindimensionalität</b> voraus. Ein hohes α beweist sie aber nicht.</p>',
+ kAlpha:'Cronbachs α',kOmega:'McDonalds ω<sub>total</sub>',kDiff:'Differenz ω − α',
+ fAlpha:'setzt gleiche Ladungen voraus',fOmega:'erlaubt unterschiedliche Ladungen',fDiff:'so stark unterschätzt α',
+ icEq:'Alle Ladungen sind gleich (τ-Äquivalenz): <b>α = ω</b>.',
+ icLess:(d)=>`Die Ladungen sind unterschiedlich: <b>α unterschätzt die Reliabilität</b> um ${R2(d,3)}. Je ungleicher die Ladungen, desto größer der Unterschied.`,
+ ic2d:'<b>Vorsicht:</b> Die Items messen zwei verschiedene Facetten. α und ω<sub>total</sub> sagen nur, wie zuverlässig der Summenwert insgesamt ist – nicht, ob er ein einziges Merkmal misst. Auch ein hohes α bedeutet nicht, dass die Skala eindimensional ist (probiere 12 Items mit hohen Ladungen). Wie viel davon auf ein gemeinsames Merkmal zurückgeht, zeigt die Vertiefung „Ein Gesamtwert für zwei Facetten?“.',
+ pCalc:'Rechenweg',infoCalc:'<p>Mit standardisierten Items hat jedes Item die Varianz 1. Die Varianz des Summenwerts s²<sub>Y</sub> ist dann (Σλ)² + Σe² – genau der Nenner von ω. In der Praxis rechnet man das mit Software (z. B. R).</p>',
+ thItem:'Item i',thLam:'Ladung λ',thLam2:'λ²',thE2:'Fehlervarianz e² = 1 − λ²',
+ calcNote1:s=>`Standardisierte Items: s²<sub>i</sub> = 1, also Σs²<sub>i</sub> = p; s²<sub>Y</sub> = (Σλ)² + Σe² = ${s}.`,
+ calcNote2:s=>`Bei zwei Faktoren gilt die einfache Formel nicht mehr: s²<sub>Y</sub> ist die Summe aller Einträge der Korrelationsmatrix (${s}), ω<sub>total</sub> = gemeinsame Varianz / s²<sub>Y</sub>.`,common:'gemeinsame Varianz',
+ pCorr:'Korrelationen zwischen den Items',infoCorr:'<p>Aus den Ladungen folgt, wie stark zwei Items korrelieren: r<sub>ij</sub> = λ<sub>i</sub> · λ<sub>j</sub> (bei zwei Faktoren zwischen den Faktoren zusätzlich · φ). Eindimensionale Skalen zeigen ein gleichmäßiges Muster, zweidimensionale zwei Blöcke.</p>',
+ pOmh:'Ein Gesamtwert für zwei Facetten? (ω hierarchisch)',
+ infoOmh:'<p>Hier wird angenommen, dass beide Facetten von einem <b>allgemeinen Faktor</b> abhängen – je höher sie korrelieren (φ), desto stärker ist er. Bei zwei Facetten ist das eine vereinfachende Annahme.</p>',
+ omhExplain:'<div>Wenn eine Skala aus zwei Facetten besteht, hat der Summenwert drei Varianzquellen:</div><div><b style="color:var(--aqua)">■</b> ein <b>gemeinsames Merkmal</b>, das beide Facetten teilen, <b style="color:var(--blue)">■</b> was nur <b>die einzelnen Facetten</b> messen, <b style="color:var(--orange)">■</b> <b>Messfehler</b>.</div><div><b>ω<sub>total</sub></b> zählt alles außer dem Messfehler. <b>ω<sub>hierarchisch</sub></b> zählt nur das gemeinsame Merkmal. Es beantwortet also die Frage: Wie gut misst der Gesamtwert <i>ein</i> Merkmal? Liegt ω<sub>h</sub> deutlich unter ω<sub>total</sub>, sind getrennte Werte für die Facetten oft sinnvoller als ein Gesamtwert.</div>',
+ seg:['gemeinsames Merkmal','nur Facetten','Messfehler'],
+ omh1D:'Stelle oben unter „Items &amp; Faktormodell“ auf <b>2 Faktoren</b>, um den Unterschied zu sehen. Mit nur einem Faktor gibt es keine Facetten: ω<sub>hierarchisch</sub> = ω<sub>total</sub>.',
+ omhVerdict:(oh)=>oh<0.5?'Nur ein kleiner Teil des Summenwerts geht auf ein gemeinsames Merkmal zurück – ein Gesamtwert wäre fragwürdig, zwei Subskalen sinnvoller.':'Ein Gesamtwert ist vertretbar, die Facetten tragen aber eigene Varianz bei.',
+ fOt:'alles außer Messfehler',fOh:'nur gemeinsames Merkmal',
+ pVar2:'Schätzung in einer Stichprobe',
+ infoVar2:'<p>ω wird in der Stichprobe über eine einfache Ein-Faktor-Analyse geschätzt. Bei zwei Faktoren ist dieses Modell falsch – auch das kommt in der Praxis häufig vor.</p>',
+ explainVar2:'<div>Alle Werte oben sind die <b>wahren Werte</b> des Modells. In einer echten Studie kennt man die Ladungen nicht: Man befragt n Personen und schätzt α und ω aus ihren Antworten.</div><div><b>Neue Studie</b> simuliert genau das: n Personen beantworten die Items so, wie es das Modell vorgibt. <b>200 Studien simulieren</b> wiederholt das 200-mal (jeder Klick zieht neue); das Histogramm zeigt, wie oft welche Schätzung herauskam. Die senkrechten Linien markieren die wahren Werte.</div>',
+ newStudy:'Neue Studie',manyStudies:'200 Studien simulieren',
+ kAhat:'α in dieser Studie',kOhat:'ω in dieser Studie',fPop:v=>`wahrer Wert: ${v}`,
+ histTxt2:(n,a,o)=>`Bei n = ${n} liegen 95 % der Schätzungen für α zwischen <b>${R2(a[0])}</b> und <b>${R2(a[1])}</b>, für ω zwischen <b>${R2(o[0])}</b> und <b>${R2(o[1])}</b>.`,
+ histEmpty2:'Klicke auf „200 Studien simulieren“.',
+ pTerms:'Begriffe & Formeln',
+ terms:`<dt>Grundgleichung</dt><dd>X = T + E (Messwert = wahrer Wert + Messfehler); σ²<sub>X</sub> = σ²<sub>T</sub> + σ²<sub>E</sub></dd>
+ <dt>Reliabilität</dt><dd>Rel. = σ²<sub>T</sub> / σ²<sub>X</sub></dd>
+ <dt>Test-Test-Schätzung</dt><dd>Rel. = cov<sub>xy</sub> / (σ<sub>x</sub>·σ<sub>y</sub>) = corr<sub>xy</sub></dd>
+ <dt>Spearman-Brown</dt><dd>Rel. = k·r / (1 + (k − 1)·r), bei Testhalbierung k = 2</dd>
+ <dt>Cronbachs α</dt><dd>α = p / (p − 1) · (1 − Σs²<sub>i</sub> / s²<sub>Y</sub>), p = Anzahl Items</dd>
+ <dt>McDonalds ω<sub>total</sub></dt><dd>ω = (Σλ<sub>i</sub>)² / ((Σλ<sub>i</sub>)² + Σe²<sub>i</sub>), mit e²<sub>i</sub> = 1 − λ²<sub>i</sub> bei standardisierten Items</dd>
+ <dt>τ-äquivalent</dt><dd>alle Items hängen gleich stark mit dem Merkmal zusammen → α = ω</dd>
+ <dt>τ-kongenerisch</dt><dd>alle Items messen dasselbe Merkmal, aber unterschiedlich stark → ω ≥ α</dd>`
+},
+en:{
+ title:'Reliability – interactive',sub:'How precisely does a test measure? Test–test reliability and internal consistency (Cronbach’s α, McDonald’s ω) to explore.',
+ lang:'Deutsch',allOpen:'Expand all',allClose:'Collapse all',guess:'Guessing mode',beamer:'Projector mode',infoTip:'Explanation',reveal:'Reveal',
+ tab1:'Test–test reliability',tab2:'Internal consistency: α and ω',deep:'Going deeper',moreSettings:'More settings',
+ guessQ1:'Guessing mode: how high is the estimate – and is it above or below the true reliability?',
+ guessQ2:'Guessing mode: is Cronbach’s α larger than, smaller than or equal to McDonald’s ω here?',
+ pKtt:'Basic settings: X = T + E',
+ infoKtt:'<p><b>Classical test theory:</b> every observed score X consists of a true score T and a measurement error E. Errors are unsystematic (e.g. mood, ambiguous items, marking mistakes), have an expected value of 0 and are independent of the true score and of each other.</p><p>Instead of single scores we look at variances: σ²<sub>X</sub> = σ²<sub>T</sub> + σ²<sub>E</sub>. <b>Reliability</b> is the share of true-score variance in the total variance. Ideal case σ²<sub>E</sub> = 0 → reliability 1; worst case σ²<sub>T</sub> = 0 → reliability 0.</p><p>In practice σ²<sub>T</sub> and σ²<sub>E</sub> are unknown, so reliability is estimated with a second measurement (panel below).</p>',
+ lVarT:'True-score variance',lVarE:'Error variance',
+ kttTake:(r)=>`<b>${pct(r)}</b> of the observed variance reflects real differences between people, <b>${pct(1-r)}</b> is measurement error.`,
+ rel:'Reliability',hintPersons:'12 people: true score and observed score',newPersons:'New people',legT:'true score T',legX:'observed score X',legE:'measurement error E',
+ barT:'true variance',barE:'error variance',
+ pSecond:'Estimating via a second measurement',
+ infoSecond:`<p>Because σ²<sub>T</sub> is unknown, reliability is estimated via the <b>correlation of two measurements</b>: Rel. = cov<sub>xy</sub> / (σ<sub>x</sub>·σ<sub>y</sub>) = corr<sub>xy</sub>. This only works if both measure the same true scores and their errors are independent.</p><p>You set the true reliability above in the basic settings. Here you see what each method estimates from it. The grey sliders are further influences that can bias the estimate. The estimated reliability is the population value; the scatter plot shows a simulated sample.</p>`,
+ infoRetest:`<p><b>Test–retest:</b> short interval → possible overestimation through memory, learning and practice effects: the errors of the two administrations are then related. Long interval → possible underestimation because true scores change. How quickly depends on the construct: moods change from day to day, intelligence in adults hardly at all.</p>`,
+ infoParallel:'<p><b>Parallel forms:</b> key assumption: both versions measure the same true scores. Form A has the reliability from the basic settings; you set form B separately. If the forms differ in precision, the less precise one is overestimated and the more precise one underestimated. Different content lowers the correlation (underestimation). Practice and transfer effects lead to overestimation; a cross-over design helps (group 1: A then B; group 2 the other way round).</p>',
+ infoSplit:'<p><b>Split-half:</b> the test is split into two halves (e.g. odd/even items, randomly, first/second half). Two shorter tests correlate less than two longer ones – so the <b>Spearman–Brown formula</b> projects the correlation of the halves to full test length (lengthening factor k = 2). Unequal halves, e.g. due to fatigue, lead to underestimation.</p>',
+ mRetest:'Test–retest',mParallel:'Parallel forms',mSplit:'Split-half',
+ dRetest:'One test, administered twice – with a gap in between.',dParallel:'Two versions that are as equivalent as possible, in the same session.',dSplit:'One test, administered once – split into two halves.',
+ lStab:'Stability of the trait',lStabS:'correlation of true scores over 1 year',moreInfl:'Further influences',
+ stabTxt:(s,t)=>`Over the chosen interval (${t}) the true scores correlate at <b>${R2(s)}</b>.`,
+ formA:r=>`Reliability of form A: <b>${R2(r)}</b> <span style="color:var(--muted)">(from the basic settings)</span>`,trueIs:'true',
+ lInterval:'Interval',lMemory:'Memory and practice effects',lMemoryS:'act at short intervals',
+ lRhoB:'Reliability of form B',lPar:'Equivalence of content',lParS:'correlation of true scores',lPractice:'Practice and transfer effects',lPracticeS:'correlated errors',
+ lHalfSim:'Equivalence of the halves',lHalfSimS:'e.g. fatigue in the 2nd half',
+ splitSteps:(r,sb)=>`<div>① Correlation of the two halves: <b>r = ${R2(r)}</b></div><div>② Project to full length with Spearman–Brown (k = 2):</div><div class="formula" style="margin:4px 0 0">Rel. = ${frac('k · r','1 + (k − 1) · r')} = ${frac('2 · '+R2(r),'1 + '+R2(r))} = <b>${R2(sb)}</b></div>`,
+ kEst:'Estimated reliability',fRetest:'correlation time 1 / 2',fPar:'correlation form A / B',fSB:'after Spearman–Brown',
+ takeOver:(d)=>`The estimate is <b>${R2(d)} too high</b>.`,takeUnder:(d)=>`The estimate is <b>${R2(d)} too low</b>.`,takeOk:'The estimate matches the true reliability.',
+ whyMem:' Reason: people remember their answers – the errors are no longer independent.',
+ whyChange:' Reason: true scores changed between the measurements.',
+ whyBoth:' Memory effects (too high) and change in true scores (too low) work against each other.',
+ whySplit:' Reason: the halves do not measure exactly the same thing.',
+ parTake:(r,a,b)=>`The correlation ${R2(r)} serves as the estimate for <i>both</i> forms.`+(Math.abs(a-b)>0.03?` The less precise form (${R2(Math.min(a,b))}) is thus overestimated, the more precise one (${R2(Math.max(a,b))}) underestimated.`:''),
+ parContent:' Unequal content lowers the correlation.',parPractice:' Practice effects raise it.',
+ sampleN:'Sample size n:',inSample:'Sample:',newSample:'New sample',
+ axX:{retest:'Time 1 (z-score)',parallel:'Form A (z-score)',split:'Half 1 (z-score)'},axY:{retest:'Time 2 (z-score)',parallel:'Form B (z-score)',split:'Half 2 (z-score)'},
+ hintCurve:'Expected retest correlation by interval. Click in the chart to set the interval.',
+ curveLegend:'<span><i style="background:var(--ink);height:3px"></i>retest correlation</span><span><i style="background:var(--blue);height:3px"></i>true reliability</span>',
+ over:'too high',under:'too low',
+ fmtInt:d=>d<14?`${d} ${d===1?'day':'days'}`:d<60?`${Math.round(d/7)} weeks`:d<365?`${Math.round(d/30.4)} months`:`${(d/365).toFixed(1).replace('.0','')} ${d<548?'year':'years'}`,
+ ticks:[[1,'1 day'],[7,'1 week'],[30,'1 month'],[91,'3 months'],[182,'6 months'],[365,'1 year'],[1095,'3 years']],
+ pVar:'How much does the estimate vary?',
+ infoVar:'<p>Every study draws a different sample and therefore gets a slightly different correlation. How much results vary depends mainly on sample size.</p>',
+ explainVar1:'<div>Above you see <b>one</b> simulated study. Here the same study is repeated <b>200 times</b>, each time with new people (current method and settings). Every click draws 200 new studies.</div><div>Each bar shows how many of the 200 studies obtained an estimate in that range. Try n = 30 and n = 1000.</div>',
+ manySamples:'Simulate 200 studies',varN:n=>`n = ${n} per study`,
+ histTxt:(lo,hi,n)=>`With n = ${n}, 95% of estimates lie between <b>${R2(lo)}</b> and <b>${R2(hi)}</b>.`,histEmpty:'Click “Simulate 200 studies”.',
+ histX:'estimated reliability',histExp:'expected',histTrue:'true',histTrueA:'true A',histTrueB:'true B',
+ pItems:'Items & factor model',
+ infoItems:'<p><b>Internal consistency</b> needs no second measurement: we look at how strongly the items of a test are related to each other.</p><p>In the <b>factor model</b> every item is related to a latent trait τ. The <b>factor loading λ</b> says how strongly – read it as “how well does this item measure the trait?”. With standardised items, λ² is the share of item variance due to the trait and e² = 1 − λ² the error share.</p><p>With <b>2 factors</b> the items measure two different but correlated facets (e.g. financial and social risk taking).</p>',
+ lP:'Number of items',lF:'Factors',lPhi:'Correlation of the two factors',phiNote:'The first half of the items measures factor 1, the second half factor 2.',
+ lLoad:'Factor loadings λ',equalize:'Make all equal',item:'Item',
+ pAlpha:'Cronbach’s α and McDonald’s ω',
+ infoAlpha:'<p><b>Cronbach’s α</b> assumes <b>τ-equivalence</b>: all items are equally strongly related to the trait. If not, α underestimates reliability.</p><p><b>McDonald’s ω<sub>total</sub></b> allows different loadings (τ-congeneric) and computes reliability directly from the factor model. If the one-factor model holds, ω ≥ α – they are equal exactly when all loadings are equal.</p><p>Both assume <b>unidimensionality</b>. A high α does not prove it, though.</p>',
+ kAlpha:'Cronbach’s α',kOmega:'McDonald’s ω<sub>total</sub>',kDiff:'Difference ω − α',
+ fAlpha:'assumes equal loadings',fOmega:'allows different loadings',fDiff:'how much α underestimates',
+ icEq:'All loadings are equal (τ-equivalence): <b>α = ω</b>.',
+ icLess:(d)=>`Loadings differ: <b>α underestimates reliability</b> by ${R2(d,3)}. The more unequal the loadings, the larger the gap.`,
+ ic2d:'<b>Caution:</b> the items measure two different facets. α and ω<sub>total</sub> only say how reliable the sum score is overall – not whether it measures a single trait. Even a high α does not mean the scale is unidimensional (try 12 items with high loadings). How much of it reflects one common trait is shown under “One total score for two facets?” below.',
+ pCalc:'Calculation',infoCalc:'<p>With standardised items every item has variance 1. The variance of the sum score s²<sub>Y</sub> is then (Σλ)² + Σe² – exactly the denominator of ω. In practice this is computed with software (e.g. R).</p>',
+ thItem:'Item i',thLam:'Loading λ',thLam2:'λ²',thE2:'Error variance e² = 1 − λ²',
+ calcNote1:s=>`Standardised items: s²<sub>i</sub> = 1, so Σs²<sub>i</sub> = p; s²<sub>Y</sub> = (Σλ)² + Σe² = ${s}.`,
+ calcNote2:s=>`With two factors the simple formula no longer applies: s²<sub>Y</sub> is the sum of all entries of the correlation matrix (${s}), ω<sub>total</sub> = common variance / s²<sub>Y</sub>.`,common:'common variance',
+ pCorr:'Correlations between items',infoCorr:'<p>The loadings imply how strongly two items correlate: r<sub>ij</sub> = λ<sub>i</sub> · λ<sub>j</sub> (with two factors, between factors additionally · φ). Unidimensional scales show an even pattern, two-dimensional ones two blocks.</p>',
+ pOmh:'One total score for two facets? (ω hierarchical)',
+ infoOmh:'<p>Here both facets are assumed to depend on one <b>general factor</b> – the more they correlate (φ), the stronger it is. With only two facets this is a simplifying assumption.</p>',
+ omhExplain:'<div>When a scale consists of two facets, the sum score has three sources of variance:</div><div><b style="color:var(--aqua)">■</b> a <b>common trait</b> shared by both facets, <b style="color:var(--blue)">■</b> what <b>only the individual facets</b> measure, <b style="color:var(--orange)">■</b> <b>measurement error</b>.</div><div><b>ω<sub>total</sub></b> counts everything except error. <b>ω<sub>hierarchical</sub></b> counts only the common trait. It answers the question: how well does the total score measure <i>one</i> trait? If ω<sub>h</sub> is clearly below ω<sub>total</sub>, separate facet scores are often more sensible than a total score.</div>',
+ seg:['common trait','facets only','error'],
+ omh1D:'Switch to <b>2 factors</b> under “Items &amp; factor model” above to see the difference. With one factor there are no facets: ω<sub>hierarchical</sub> = ω<sub>total</sub>.',
+ omhVerdict:(oh)=>oh<0.5?'Only a small part of the sum score reflects a common trait – a total score would be questionable, two subscales more sensible.':'A total score is defensible, but the facets contribute variance of their own.',
+ fOt:'everything except error',fOh:'common trait only',
+ pVar2:'Estimating in a sample',
+ infoVar2:'<p>In the sample, ω is estimated via a simple one-factor analysis. With two factors this model is wrong – which also happens a lot in practice.</p>',
+ explainVar2:'<div>All values above are the model’s <b>true values</b>. In a real study the loadings are unknown: you survey n people and estimate α and ω from their answers.</div><div><b>New study</b> simulates exactly that: n people answer the items as the model prescribes. <b>Simulate 200 studies</b> repeats this 200 times (every click draws new ones); the histogram shows how often each estimate came out. The vertical lines mark the true values.</div>',
+ newStudy:'New study',manyStudies:'Simulate 200 studies',
+ kAhat:'α in this study',kOhat:'ω in this study',fPop:v=>`true value: ${v}`,
+ histTxt2:(n,a,o)=>`With n = ${n}, 95% of estimates lie between <b>${R2(a[0])}</b> and <b>${R2(a[1])}</b> for α, and between <b>${R2(o[0])}</b> and <b>${R2(o[1])}</b> for ω.`,
+ histEmpty2:'Click “Simulate 200 studies”.',
+ pTerms:'Terms & formulas',
+ terms:`<dt>Basic equation</dt><dd>X = T + E (observed score = true score + error); σ²<sub>X</sub> = σ²<sub>T</sub> + σ²<sub>E</sub></dd>
+ <dt>Reliability</dt><dd>Rel. = σ²<sub>T</sub> / σ²<sub>X</sub></dd>
+ <dt>Test–test estimate</dt><dd>Rel. = cov<sub>xy</sub> / (σ<sub>x</sub>·σ<sub>y</sub>) = corr<sub>xy</sub></dd>
+ <dt>Spearman–Brown</dt><dd>Rel. = k·r / (1 + (k − 1)·r), for split-half k = 2</dd>
+ <dt>Cronbach’s α</dt><dd>α = p / (p − 1) · (1 − Σs²<sub>i</sub> / s²<sub>Y</sub>), p = number of items</dd>
+ <dt>McDonald’s ω<sub>total</sub></dt><dd>ω = (Σλ<sub>i</sub>)² / ((Σλ<sub>i</sub>)² + Σe²<sub>i</sub>), with e²<sub>i</sub> = 1 − λ²<sub>i</sub> for standardised items</dd>
+ <dt>τ-equivalent</dt><dd>all items relate equally strongly to the trait → α = ω</dd>
+ <dt>τ-congeneric</dt><dd>all items measure the same trait, but to different degrees → ω ≥ α</dd>`
+}};
+const t=(k,...a)=>{const v=T[S.lang][k];return typeof v==='function'?v(...a):v;};
+
+// ================= Grundbedienung =================
+function setArea(a,push){S.area=a;document.querySelectorAll('.area').forEach(x=>x.classList.toggle('on',x.id==='area-'+a));
+  document.querySelectorAll('.maintabs button').forEach(b=>b.classList.toggle('on',b.dataset.area===a));
+  if(push){try{history.replaceState(null,'','#'+a);}catch(e){location.hash=a;}}
+  document.body.classList.remove('revealed');render();}
+document.querySelectorAll('.maintabs button').forEach(b=>b.addEventListener('click',()=>setArea(b.dataset.area,true)));
+window.addEventListener('hashchange',()=>{const x=location.hash.slice(1);if(x==='test-test'||x==='interne-konsistenz')setArea(x,false);});
+document.querySelectorAll('.panel').forEach(p=>{
+  p.querySelector(':scope>.ph>.tog').addEventListener('click',()=>{p.classList.toggle('open');updAllBtn();});
+  const ib=p.querySelector(':scope>.ph>.info');if(ib)ib.addEventListener('click',()=>{p.classList.toggle('showinfo');ib.classList.toggle('on');});
+});
+const visPanels=()=>[...document.querySelectorAll('.panel')].filter(p=>!p.closest('.area')||p.closest('.area').classList.contains('on'));
+function updAllBtn(){$('btnAll').textContent=visPanels().every(p=>p.classList.contains('open'))?t('allClose'):t('allOpen');}
+$('btnAll').addEventListener('click',()=>{const ps=visPanels(),o=!ps.every(p=>p.classList.contains('open'));ps.forEach(p=>p.classList.toggle('open',o));updAllBtn();});
+$('btnGuess').addEventListener('click',()=>{document.body.classList.toggle('guess');document.body.classList.remove('revealed');$('btnGuess').classList.toggle('on');});
+$('btnReveal').addEventListener('click',()=>document.body.classList.add('revealed'));
+$('btnBeamer').addEventListener('click',()=>{document.body.classList.toggle('beamer');$('btnBeamer').classList.toggle('on');});
+$('btnLang').addEventListener('click',()=>{S.lang=S.lang==='de'?'en':'de';applyStatic();render();});
+const hideGuess=()=>{if(document.body.classList.contains('guess'))document.body.classList.remove('revealed');};
+const tip=$('tip');
+function showTip(e,html){tip.innerHTML=html;tip.style.opacity=1;tip.style.left=Math.min(e.clientX+14,window.innerWidth-tip.offsetWidth-8)+'px';tip.style.top=Math.min(e.clientY+14,window.innerHeight-tip.offsetHeight-8)+'px';}
+const hideTip=()=>tip.style.opacity=0;
+function svgPt(svg,e){const pt=svg.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;return pt.matrixTransform(svg.getScreenCTM().inverse());}
+
+// ================= Bereich 1: Eingaben =================
+function upd1(){S.many1=null;hideGuess();render();}
+$('r_vt').addEventListener('input',e=>{S.vt=+e.target.value;upd1();});
+$('r_ve').addEventListener('input',e=>{S.ve=+e.target.value;upd1();});
+$('r_int').addEventListener('input',e=>{S.interval=posToInt(+e.target.value);upd1();});
+for(const k of ['stab1','mem','rb','par','pr','hs']){const id=k==='stab1'?'r_stab':'r_'+k;$(id).addEventListener('input',e=>{S[k]=+e.target.value;upd1();});}
+$('s_n1').addEventListener('change',e=>{S.n1=+e.target.value;S.many1=null;render();});
+$('btnSample1').addEventListener('click',()=>{S.seed1=(S.seed1*7919+13)%100000;render();});
+$('btnPersons').addEventListener('click',()=>{S.personSeed=(S.personSeed*31+7)%100000;render();});
+document.querySelectorAll('#methTabs button').forEach(b=>b.addEventListener('click',()=>{S.meth=b.dataset.m;upd1();}));
+$('btnMany1').addEventListener('click',()=>{S.manyCount1++;S.many1=manySamples1();render();});
+
+function model1(){
+  if(S.meth==='retest'){const r=rho(),s=stab(S.interval),c=memc(S.interval);return {exp:r*s+(1-r)*c,truth:r,s,c};}
+  if(S.meth==='parallel'){const ra=rho();return {exp:Math.sqrt(ra*S.rb)*S.par+S.pr*Math.sqrt((1-ra)*(1-S.rb)),truth:ra,truthB:S.rb};}
+  const r=rho(),rh=r/(2-r),rhalf=rh*S.hs;return {exp:2*rhalf/(1+rhalf),truth:r,rhalf};
+}
+function sample1(seed,n){
+  const Z=normals(seed,n*4),X=new Float64Array(n),Y=new Float64Array(n);
+  for(let i=0;i<n;i++){const T1=Z[i],U=Z[n+i],E1=Z[2*n+i],E2=Z[3*n+i];
+    if(S.meth==='retest'){const r=rho(),s=stab(S.interval),c=memc(S.interval);
+      X[i]=Math.sqrt(r)*T1+Math.sqrt(1-r)*E1;Y[i]=Math.sqrt(r)*(s*T1+Math.sqrt(1-s*s)*U)+Math.sqrt(1-r)*(c*E1+Math.sqrt(1-c*c)*E2);}
+    else if(S.meth==='parallel'){const ra=rho();X[i]=Math.sqrt(ra)*T1+Math.sqrt(1-ra)*E1;
+      Y[i]=Math.sqrt(S.rb)*(S.par*T1+Math.sqrt(1-S.par*S.par)*U)+Math.sqrt(1-S.rb)*(S.pr*E1+Math.sqrt(1-S.pr*S.pr)*E2);}
+    else{const r=rho(),rh=r/(2-r);X[i]=Math.sqrt(rh)*T1+Math.sqrt(1-rh)*E1;Y[i]=Math.sqrt(rh)*(S.hs*T1+Math.sqrt(1-S.hs*S.hs)*U)+Math.sqrt(1-rh)*E2;}}
+  const r=corr(X,Y);return {X,Y,r,est:S.meth==='split'?2*r/(1+r):r};
+}
+function manySamples1(){const out=[],base=5000+S.manyCount1*104729+S.seed1;for(let k=0;k<200;k++)out.push(sample1(base+k*17,S.n1).est);return out.sort((a,b)=>a-b);}
+
+// ================= Bereich 2 =================
+function icModel(){
+  const p=S.p,lam=S.lam.slice(0,p),f=lam.map((_,i)=>S.twoD&&i>=Math.ceil(p/2)?1:0),e2=lam.map(l=>1-l*l),phi=S.twoD?S.phi:1;
+  const R=[];for(let i=0;i<p;i++){R.push([]);for(let j=0;j<p;j++)R[i].push(i===j?1:lam[i]*lam[j]*(f[i]===f[j]?1:phi));}
+  let sY=0;R.forEach(r=>r.forEach(v=>sY+=v));
+  const L1=lam.filter((_,i)=>f[i]===0).reduce((a,b)=>a+b,0),L2=lam.filter((_,i)=>f[i]===1).reduce((a,b)=>a+b,0);
+  const common=L1*L1+L2*L2+2*phi*L1*L2,general=S.twoD?phi*(L1+L2)*(L1+L2):common;
+  const sumL=lam.reduce((a,b)=>a+b,0),sumE=e2.reduce((a,b)=>a+b,0);
+  return {p,lam,f,e2,R,sY,alpha:p/(p-1)*(1-p/sY),omega:common/sY,omh:general/sY,common,general,sumL,sumE};
+}
+function paf(Rm){const p=Rm.length;let hh=Rm.map((r,i)=>Math.max(...r.filter((_,j)=>j!==i).map(Math.abs)));let lam=new Array(p).fill(.5);
+  for(let it=0;it<60;it++){const A=Rm.map((r,i)=>r.map((v,j)=>i===j?hh[i]:v));let v=new Array(p).fill(1/Math.sqrt(p)),mu=0;
+    for(let k=0;k<60;k++){const w=A.map(r=>r.reduce((s,x,j)=>s+x*v[j],0));mu=Math.sqrt(w.reduce((s,x)=>s+x*x,0));if(mu<1e-12)break;v=w.map(x=>x/mu);}
+    const sg=v.reduce((a,b)=>a+b,0)<0?-1:1;lam=v.map(x=>sg*x*Math.sqrt(Math.max(mu,0)));hh=lam.map(l=>Math.min(l*l,.995));}
+  return lam;}
+function sample2(seed,n){
+  const M=icModel(),p=M.p,Z=normals(seed,n*(p+2)),D=[];
+  for(let i=0;i<n;i++){const o=i*(p+2),z1=Z[o],F=[z1,S.twoD?S.phi*z1+Math.sqrt(1-S.phi*S.phi)*Z[o+1]:z1];
+    D.push(M.lam.map((l,j)=>l*F[M.f[j]]+Math.sqrt(M.e2[j])*Z[o+2+j]));}
+  const mean=new Array(p).fill(0);D.forEach(r=>r.forEach((v,j)=>mean[j]+=v/n));
+  const C=[];for(let a=0;a<p;a++){C.push([]);for(let b=0;b<p;b++){let s=0;for(let i=0;i<n;i++)s+=(D[i][a]-mean[a])*(D[i][b]-mean[b]);C[a].push(s/(n-1));}}
+  let tot=0,tr=0;for(let a=0;a<p;a++){tr+=C[a][a];for(let b=0;b<p;b++)tot+=C[a][b];}
+  const Rm=C.map((r,a)=>r.map((v,b)=>v/Math.sqrt(C[a][a]*C[b][b]))),lh=paf(Rm),sl=lh.reduce((x,y)=>x+y,0),se=lh.reduce((x,l)=>x+1-l*l,0);
+  return {alpha:p/(p-1)*(1-tr/tot),omega:sl*sl/(sl*sl+se)};
+}
+let sampleIC=null;
+function manySamples2(){const A=[],O=[],base=9000+S.manyCount2*104729+S.seed2;for(let k=0;k<200;k++){const s=sample2(base+k*29,S.n2);A.push(s.alpha);O.push(s.omega);}return {A:A.sort((a,b)=>a-b),O:O.sort((a,b)=>a-b)};}
+function icChanged(rebuild){S.many2=null;sampleIC=null;hideGuess();if(rebuild)buildLoadGrid();render();}
+$('r_p').addEventListener('input',e=>{S.p=+e.target.value;icChanged(true);});
+$('btnEqual').addEventListener('click',()=>{const m=S.lam.slice(0,S.p).reduce((a,b)=>a+b,0)/S.p;for(let i=0;i<S.p;i++)S.lam[i]=Math.round(m*20)/20;icChanged(true);});
+document.querySelectorAll('#facSeg button').forEach(b=>b.addEventListener('click',()=>{S.twoD=b.dataset.f==='2';icChanged(true);}));
+$('r_phi').addEventListener('input',e=>{S.phi=+e.target.value;icChanged(false);});
+$('s_n2').addEventListener('change',e=>{S.n2=+e.target.value;S.many2=null;sampleIC=sample2(S.seed2,S.n2);render();});
+$('btnSample2').addEventListener('click',()=>{S.seed2=(S.seed2*7919+31)%100000;sampleIC=sample2(S.seed2,S.n2);render();});
+$('btnMany2').addEventListener('click',()=>{S.manyCount2++;S.many2=manySamples2();render();});
+function buildLoadGrid(){const g=$('loadGrid');g.innerHTML='';
+  for(let i=0;i<S.p;i++){const row=document.createElement('div');row.className='loadrow';const f2=S.twoD&&i>=Math.ceil(S.p/2);
+    row.innerHTML=`<span class="nm">${t('item')} ${i+1} ${S.twoD?`<span class="tg" style="background:${f2?'var(--orange)':'var(--blue)'}">F${f2?2:1}</span>`:''}</span><input type="range" min="0.05" max="0.95" step="0.05" value="${S.lam[i]}"><span class="val">${R2(S.lam[i])}</span>`;
+    const inp=row.querySelector('input'),val=row.querySelector('.val');
+    inp.addEventListener('input',()=>{S.lam[i]=+inp.value;val.textContent=R2(S.lam[i]);icChanged(false);});g.appendChild(row);}}
+
+// ================= Statische Texte =================
+function applyStatic(){
+  document.documentElement.lang=S.lang;document.title=t('title');
+  document.querySelectorAll('[data-t]').forEach(el=>el.innerHTML=t(el.dataset.t));
+  document.querySelectorAll('.info').forEach(b=>b.title=t('infoTip'));
+  $('btnLang').textContent=t('lang');
+  buildLoadGrid();updAllBtn();
+}
+
+// ================= Render =================
+function render(){
+  $('guessQ').textContent=S.area==='test-test'?t('guessQ1'):t('guessQ2');
+  if(S.area==='test-test'){renderKtt();renderSecond();renderHist1();}
+  else{renderItems();renderAlpha();renderCalc();renderHeat();renderOmh();renderSample2();}
+  $('terms').innerHTML=t('terms');updAllBtn();
+}
+
+function renderKtt(){
+  $('r_vt').value=S.vt;$('r_ve').value=S.ve;$('v_vt').textContent=F(S.vt);$('v_ve').textContent=F(S.ve);
+  const vx=S.vt+S.ve,r=rho();
+  $('vbar').innerHTML=`<div style="flex:${S.vt} 1 0;background:var(--blue)">${vx&&S.vt/vx>.22?t('barT')+' '+F(S.vt):''}</div><div style="flex:${S.ve} 1 0;background:var(--orange)">${vx&&S.ve/vx>.22?t('barE')+' '+F(S.ve):''}</div>`;
+  $('kttFormula').innerHTML=`${t('rel')} = ${frac('σ²<sub>T</sub>','σ²<sub>T</sub> + σ²<sub>E</sub>')} = ${frac(F(S.vt),F(S.vt)+' + '+F(S.ve))} = <b>${R2(r)}</b>`;
+  $('kttTake').innerHTML=t('kttTake',r);$('peekKtt').textContent=`${t('rel')} ${R2(r)}`;
+  const Z=normals(S.personSeed,24),W=600,H=250,m={l:34,r:8,t:8,b:24},iw=W-m.l-m.r,ih=H-m.t-m.b,lim=6.5;
+  const ys=v=>m.t+ih/2-clamp(v,-lim,lim)/lim*ih/2;let s='';
+  for(const v of [-6,-3,0,3,6])s+=`<line x1="${m.l}" x2="${m.l+iw}" y1="${ys(v)}" y2="${ys(v)}" stroke="${v===0?'var(--axis)':'var(--grid)'}"/><text x="${m.l-6}" y="${ys(v)+4}" text-anchor="end" font-size="10.5">${v}</text>`;
+  for(let i=0;i<12;i++){const x=m.l+(i+.5)*iw/12,T0=Z[i]*Math.sqrt(S.vt),X=T0+Z[12+i]*Math.sqrt(S.ve);
+    s+=`<line x1="${x-13}" x2="${x+13}" y1="${ys(T0)}" y2="${ys(T0)}" stroke="var(--blue)" stroke-width="4" stroke-linecap="round"/>`;
+    s+=`<line x1="${x}" x2="${x}" y1="${ys(T0)}" y2="${ys(X)}" stroke="var(--orange)" stroke-width="3.5" stroke-linecap="round"/>`;
+    s+=`<circle cx="${x}" cy="${ys(X)}" r="4" fill="var(--ink)"/>`;
+    s+=`<text x="${x}" y="${H-6}" text-anchor="middle" font-size="10.5">${i+1}</text>`;}
+  $('persons').innerHTML=s;
+}
+
+function renderSecond(){
+  document.querySelectorAll('#methTabs button').forEach(b=>b.classList.toggle('on',b.dataset.m===S.meth));
+  document.querySelectorAll('[data-meth]').forEach(d=>d.style.display=d.dataset.meth===S.meth?'':'none');
+  $('methDesc').innerHTML=t({retest:'dRetest',parallel:'dParallel',split:'dSplit'}[S.meth]);
+  $('infoSecond').innerHTML=t('infoSecond')+t({retest:'infoRetest',parallel:'infoParallel',split:'infoSplit'}[S.meth]);
+  $('retestCurveWrap').style.display=S.meth==='retest'?'':'none';
+  const r=rho();
+  $('r_int').value=intToPos(S.interval);$('intTxt').textContent=t('fmtInt',S.interval);
+  $('r_stab').value=S.stab1;$('v_stab').textContent=R2(S.stab1);
+  for(const k of ['mem','rb','par','pr','hs']){$('r_'+k).value=S[k];$('v_'+k).textContent=R2(S[k]);}
+  $('formA').innerHTML=t('formA',r);
+  const M=model1(),smp=sample1(S.seed1,S.n1);
+  if(S.meth==='retest')$('stabTxt').innerHTML=t('stabTxt',M.s,t('fmtInt',S.interval));
+  if(S.meth==='split')$('splitSteps').innerHTML=t('splitSteps',M.rhalf,M.exp);
+  const cap=S.meth==='split'?t('fSB'):S.meth==='parallel'?t('fPar'):t('fRetest');
+  const tr=S.meth==='parallel'?`${t('trueIs')}: A ${R2(r)} / B ${R2(S.rb)}`:`${t('trueIs')}: ${R2(M.truth)}`;
+  $('ttKpis').innerHTML=`<div class="kpi"><div class="k"><i style="background:var(--ink)"></i>${t('kEst')}</div><div class="v">${R2(M.exp)}</div><div class="f">${cap} · ${tr}</div></div>`;
+  let tk='';
+  if(S.meth==='parallel'){tk=t('parTake',M.exp,r,S.rb);if(S.par<0.98)tk+=t('parContent');if(S.pr>0.02)tk+=t('parPractice');}
+  else{const d=M.exp-M.truth;tk=Math.abs(d)<0.015?t('takeOk'):d>0?t('takeOver',d):t('takeUnder',-d);
+    if(S.meth==='retest'){const memEff=(1-M.truth)*M.c,chg=M.truth*(1-M.s);
+      if(memEff>0.015&&chg>0.015)tk+=t('whyBoth');else if(d>0.015)tk+=t('whyMem');else if(d<-0.015)tk+=t('whyChange');}
+    if(S.meth==='split'&&d<-0.015)tk+=t('whySplit');}
+  $('ttTake').innerHTML=tk;
+  $('peekSecond').textContent=`${t({retest:'mRetest',parallel:'mParallel',split:'mSplit'}[S.meth])}: ${R2(M.exp)}`;
+  renderScatter(smp);if(S.meth==='retest')renderRetestCurve();
+}
+function renderScatter(smp){
+  const W=420,H=360,m={l:44,r:12,t:12,b:40},iw=W-m.l-m.r,ih=H-m.t-m.b,lim=3.6;
+  const xs=v=>m.l+(v+lim)/(2*lim)*iw,ys=v=>m.t+(1-(v+lim)/(2*lim))*ih;let s='';
+  for(const v of [-3,-2,-1,0,1,2,3]){s+=`<line x1="${xs(v)}" x2="${xs(v)}" y1="${m.t}" y2="${m.t+ih}" stroke="${v===0?'var(--axis)':'var(--grid)'}"/><line y1="${ys(v)}" y2="${ys(v)}" x1="${m.l}" x2="${m.l+iw}" stroke="${v===0?'var(--axis)':'var(--grid)'}"/>`;
+    s+=`<text x="${xs(v)}" y="${m.t+ih+14}" text-anchor="middle" font-size="10.5">${v}</text><text x="${m.l-6}" y="${ys(v)+4}" text-anchor="end" font-size="10.5">${v}</text>`;}
+  const op=S.n1>300?.25:S.n1>100?.4:.6,rad=S.n1>300?2.2:3.2;
+  for(let i=0;i<smp.X.length;i++)s+=`<circle cx="${xs(clamp(smp.X[i],-lim,lim)).toFixed(1)}" cy="${ys(clamp(smp.Y[i],-lim,lim)).toFixed(1)}" r="${rad}" fill="var(--ink)" opacity="${op}"/>`;
+  s+=`<text x="${m.l+iw/2}" y="${H-4}" text-anchor="middle" font-size="11.5">${t('axX')[S.meth]}</text><text transform="translate(12,${m.t+ih/2}) rotate(-90)" text-anchor="middle" font-size="11.5">${t('axY')[S.meth]}</text>`;
+  s+=`<g class="secret"><rect x="${m.l+8}" y="${m.t+8}" width="150" height="26" rx="6" fill="var(--surface)" stroke="var(--border)"/><text x="${m.l+83}" y="${m.t+26}" text-anchor="middle" font-size="12.5" style="fill:var(--ink)">${t('inSample')} <tspan font-weight="650">r = ${R2(smp.r)}</tspan></text></g>`;
+  $('scatter').innerHTML=s;
+}
+function renderRetestCurve(){
+  const W=900,H=230,m={l:46,r:16,t:14,b:36},iw=W-m.l-m.r,ih=H-m.t-m.b,lmax=Math.log(1095);
+  const xs=d=>m.l+Math.log(d)/lmax*iw,ys=v=>m.t+(1-v)*ih,r=rho();let s='';
+  for(const v of [0,.2,.4,.6,.8,1])s+=`<line x1="${m.l}" x2="${m.l+iw}" y1="${ys(v)}" y2="${ys(v)}" stroke="${v===0?'var(--axis)':'var(--grid)'}"/><text x="${m.l-6}" y="${ys(v)+4}" text-anchor="end" font-size="10.5">${R2(v,1)}</text>`;
+  for(const [d,l] of t('ticks'))s+=`<line x1="${xs(d)}" x2="${xs(d)}" y1="${m.t+ih}" y2="${m.t+ih+4}" stroke="var(--axis)"/><text x="${xs(d)}" y="${m.t+ih+17}" text-anchor="middle" font-size="10.5">${l}</text>`;
+  const pts=[];for(let i=0;i<=200;i++){const dd=Math.exp(i/200*lmax),v=r*stab(dd)+(1-r)*memc(dd);pts.push([xs(dd),ys(v),v]);}
+  const yr=ys(r),end=pts[pts.length-1];
+  s+=`<path d="M${pts.map(p=>p[0].toFixed(1)+','+Math.min(p[1],yr).toFixed(1)).join('L')}L${end[0]},${yr}L${pts[0][0]},${yr}Z" fill="var(--orange)" opacity=".16"/>`;
+  s+=`<path d="M${pts.map(p=>p[0].toFixed(1)+','+Math.max(p[1],yr).toFixed(1)).join('L')}L${end[0]},${yr}L${pts[0][0]},${yr}Z" fill="var(--blue)" opacity=".14"/>`;
+  s+=`<line x1="${m.l}" x2="${m.l+iw}" y1="${yr}" y2="${yr}" stroke="var(--blue)" stroke-width="2" stroke-dasharray="6 4"/>`;
+  s+=`<path d="M${pts.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join('L')}" fill="none" stroke="var(--ink)" stroke-width="2.5"/>`;
+  const iMax=pts.reduce((b,p,i)=>p[2]>pts[b][2]?i:b,0),iMin=pts.reduce((b,p,i)=>p[2]<pts[b][2]?i:b,0);
+  if(pts[iMax][2]-r>0.04){const io=Math.min(iMax+28,200);s+=`<text x="${pts[io][0]}" y="${pts[io][1]-8}" font-size="11.5" font-weight="600" style="fill:var(--orange-ink)">${t('over')}</text>`;}
+  if(r-pts[iMin][2]>0.06)s+=`<text x="${pts[iMin][0]-8}" y="${(pts[iMin][1]+yr)/2+4}" text-anchor="end" font-size="11.5" font-weight="600" style="fill:var(--blue-ink)">${t('under')}</text>`;
+  const cx=xs(S.interval),cv=r*stab(S.interval)+(1-r)*memc(S.interval);
+  s+=`<line x1="${cx}" x2="${cx}" y1="${m.t}" y2="${m.t+ih}" stroke="var(--ink2)" stroke-dasharray="3 3"/><circle cx="${cx}" cy="${ys(cv)}" r="6" fill="var(--ink)" stroke="var(--surface)" stroke-width="2"/>`;
+  s+=`<text x="${cx+(cx>W-120?-10:10)}" y="${ys(cv)+(cv>r?-10:18)}" text-anchor="${cx>W-120?'end':'start'}" font-size="12" font-weight="650" style="fill:var(--ink)">${R2(cv)}</text>`;
+  s+=`<rect x="${m.l}" y="${m.t}" width="${iw}" height="${ih}" fill="transparent" id="rcHit" style="cursor:crosshair"/>`;
+  const svg=$('retestCurve');svg.innerHTML=s;const hit=svg.querySelector('#rcHit');
+  const toD=e=>clamp(Math.round(Math.exp((svgPt(svg,e).x-m.l)/iw*lmax)),1,1095);
+  hit.onmousemove=e=>{const dd=toD(e);showTip(e,`${t('fmtInt',dd)}: r = ${R2(r*stab(dd)+(1-r)*memc(dd))}`);};
+  hit.onmouseleave=hideTip;hit.onclick=e=>{S.interval=toD(e);upd1();};
+  $('curveLegend').innerHTML=t('curveLegend');
+}
+
+const quant=(a,q)=>{const i=(a.length-1)*q,lo=Math.floor(i),hi=Math.ceil(i);return a[lo]+(a[hi]-a[lo])*(i-lo);};
+function histSVG(series,marks,W){
+  W=W||560;const H=220,m={l:20,r:12,t:22,b:36},iw=W-m.l-m.r,ih=H-m.t-m.b;
+  const all=series.flatMap(s=>s.v).concat(marks.map(k=>k.v));let lo=Math.min(...all),hi=Math.max(...all);const pad=Math.max(.03,(hi-lo)*.08);lo=Math.max(-1,lo-pad);hi=Math.min(1,hi+pad);
+  const nb=30,bw=(hi-lo)/nb,xs=v=>m.l+(v-lo)/(hi-lo)*iw;
+  const counts=series.map(sr=>{const c=new Array(nb).fill(0);sr.v.forEach(v=>c[clamp(Math.floor((v-lo)/bw),0,nb-1)]++);return c;});
+  const cmax=Math.max(...counts.flat(),1),ys=v=>m.t+ih-v/cmax*ih;let s=`<line x1="${m.l}" x2="${m.l+iw}" y1="${m.t+ih}" y2="${m.t+ih}" stroke="var(--axis)"/>`;
+  const step=(hi-lo)>.6?.2:(hi-lo)>.3?.1:.05;
+  for(let v=Math.ceil(lo/step-1e-9)*step;v<=hi+1e-9;v+=step)s+=`<text x="${xs(v)}" y="${m.t+ih+15}" text-anchor="middle" font-size="10.5">${R2(v)}</text>`;
+  s+=`<text x="${m.l+iw/2}" y="${H-3}" text-anchor="middle" font-size="11">${t('histX')}</text>`;
+  const bwPx=iw/nb;
+  counts.forEach((c,si)=>c.forEach((n,i)=>{if(!n)return;const two=series.length>1,x=m.l+i*bwPx+1+(two?si*bwPx/2:0),w=two?bwPx/2-1:bwPx-2;
+    s+=`<rect x="${x.toFixed(1)}" y="${ys(n).toFixed(1)}" width="${Math.max(w,1).toFixed(1)}" height="${(m.t+ih-ys(n)).toFixed(1)}" rx="1.5" fill="${series[si].c}" opacity=".85"/>`;}));
+  marks.forEach((k,i)=>{s+=`<line x1="${xs(k.v)}" x2="${xs(k.v)}" y1="${m.t-6}" y2="${m.t+ih}" stroke="${k.c}" stroke-width="2" ${k.dash?'stroke-dasharray="5 4"':''}/><text x="${xs(k.v)+5}" y="${m.t+4+i*13}" font-size="10.5" font-weight="600" style="fill:${k.c}">${k.l} ${R2(k.v)}</text>`;});
+  return s;
+}
+function renderHist1(){
+  $('varN1').textContent=t('varN',S.n1);
+  if(!S.many1){$('hist1').innerHTML='';$('histTxt1').innerHTML=t('histEmpty');return;}
+  const M=model1(),marks=[{v:M.exp,c:'var(--ink)',l:t('histExp')}];if(S.meth!=='parallel')marks.push({v:M.truth,c:'var(--blue)',l:t('histTrue'),dash:true});
+  else marks.push({v:M.truth,c:'var(--blue)',l:t('histTrueA'),dash:true},{v:M.truthB,c:'var(--orange)',l:t('histTrueB'),dash:true});
+  $('hist1').innerHTML=histSVG([{v:S.many1,c:'var(--ink2)'}],marks,1100);
+  $('histTxt1').innerHTML=t('histTxt',quant(S.many1,.025),quant(S.many1,.975),S.n1);
+}
+
+function renderItems(){
+  $('r_p').value=S.p;$('v_p').textContent=S.p;$('phiCtl').style.display=S.twoD?'':'none';$('r_phi').value=S.phi;$('v_phi').textContent=R2(S.phi);
+  document.querySelectorAll('#facSeg button').forEach(b=>b.classList.toggle('on',(b.dataset.f==='2')===S.twoD));
+  const M=icModel();$('peekItems').textContent=`p = ${M.p} · λ = ${M.lam.map(l=>R2(l)).join(', ')}`;
+  const p=M.p,rowH=Math.min(40,260/p+6),H=Math.max(200,p*rowH+30),W=460,bx=150,bw=78,bh=Math.min(28,rowH-6),fx=390,fr=30,yItem=i=>15+rowH*(i+.5);
+  $('pathDiag').setAttribute('viewBox',`0 0 ${W} ${H}`);
+  const facs=S.twoD?[{y:yItem((Math.ceil(p/2)-1)/2),c:'var(--blue)',n:'F1'},{y:yItem(Math.ceil(p/2)+(p-Math.ceil(p/2)-1)/2),c:'var(--orange)',n:'F2'}]:[{y:H/2,c:'var(--ink)',n:'τ'}];
+  let s='';
+  M.lam.forEach((l,i)=>{const F0=facs[M.f[i]],y=yItem(i);
+    s+=`<line x1="${fx-fr}" y1="${F0.y}" x2="${bx+bw+6}" y2="${y}" stroke="${S.twoD?F0.c:'var(--ink2)'}" stroke-width="${(0.6+l*5).toFixed(1)}" opacity="${0.35+l*0.6}"/>`;
+    s+=`<text x="${bx+bw+30}" y="${y+(F0.y-y)*0.11-7}" font-size="11" text-anchor="middle" style="fill:var(--ink)" font-weight="600">${R2(l)}</text>`;
+    s+=`<rect x="${bx}" y="${y-bh/2}" width="${bw}" height="${bh}" rx="5" fill="var(--surface)" stroke="var(--ink2)"/><text x="${bx+bw/2}" y="${y+4}" text-anchor="middle" font-size="11.5" style="fill:var(--ink)">${t('item')} ${i+1}</text>`;
+    s+=`<line x1="${bx-38}" y1="${y}" x2="${bx-2}" y2="${y}" stroke="var(--orange)" stroke-width="1.5"/><text x="${bx-44}" y="${y+4}" text-anchor="end" font-size="10.5" style="fill:var(--orange-ink)">e² ${R2(M.e2[i])}</text>`;});
+  facs.forEach(F0=>{s+=`<circle cx="${fx}" cy="${F0.y}" r="${fr}" fill="var(--surface)" stroke="${F0.c}" stroke-width="2"/><text x="${fx}" y="${F0.y+6}" text-anchor="middle" font-size="18" font-style="italic" style="fill:var(--ink)">${F0.n}</text>`;});
+  if(S.twoD)s+=`<path d="M${fx+fr},${facs[0].y} C${fx+fr+40},${facs[0].y} ${fx+fr+40},${facs[1].y} ${fx+fr},${facs[1].y}" fill="none" stroke="var(--ink2)" stroke-width="1.5"/><text x="${fx+fr+26}" y="${(facs[0].y+facs[1].y)/2+4}" font-size="11" style="fill:var(--ink)">φ ${R2(S.phi)}</text>`;
+  $('pathDiag').innerHTML=s;
+}
+function renderAlpha(){
+  const M=icModel(),d=M.omega-M.alpha;
+  $('icKpis').innerHTML=`<div class="kpi"><div class="k"><i style="background:var(--orange)"></i>${t('kAlpha')}</div><div class="v">${R2(M.alpha,3)}</div><div class="f">${t('fAlpha')}</div></div>
+   <div class="kpi"><div class="k"><i style="background:var(--blue)"></i>${t('kOmega')}</div><div class="v">${R2(M.omega,3)}</div><div class="f">${t('fOmega')}</div></div>
+`;
+  $('icTake').innerHTML=S.twoD?t('ic2d'):Math.abs(d)<0.0015?t('icEq'):t('icLess',d);
+  $('peekAlpha').innerHTML=`α ${R2(M.alpha,3)} · ω ${R2(M.omega,3)}`;
+}
+function renderCalc(){
+  const M=icModel();
+  let s=`<tr><th>${t('thItem')}</th><th>${t('thLam')}</th><th>${t('thLam2')}</th><th>${t('thE2')}</th></tr>`;
+  M.lam.forEach((l,i)=>{s+=`<tr><td>${i+1}${S.twoD?` <small style="color:var(--muted)">F${M.f[i]+1}</small>`:''}</td><td>${R2(l)}</td><td>${R2(l*l)}</td><td>${R2(M.e2[i])}</td></tr>`;});
+  s+=`<tr class="sum"><td>∑</td><td>${F(M.sumL)}</td><td></td><td>${F(M.sumE)}</td></tr>`+(S.twoD?'':`<tr><td>(∑)²</td><td>${F(M.sumL*M.sumL)}</td><td></td><td></td></tr>`);
+  $('calcTab').innerHTML=s;
+  $('omegaCalc').innerHTML=S.twoD?`ω<sub>total</sub> = ${frac(t('common'),'s²<sub>Y</sub>')} = ${frac(F(M.common),F(M.sY))} = <b>${R2(M.omega,3)}</b>`
+    :`ω<sub>total</sub> = ${frac('(Σλ<sub>i</sub>)²','(Σλ<sub>i</sub>)² + Σe²<sub>i</sub>')} = ${frac(F(M.sumL*M.sumL),F(M.sumL*M.sumL)+' + '+F(M.sumE))} = <b>${R2(M.omega,3)}</b>`;
+  $('alphaCalc').innerHTML=`α = ${frac('p','p − 1')} · (1 − ${frac('Σs²<sub>i</sub>','s²<sub>Y</sub>')}) = ${frac(M.p,M.p-1)} · (1 − ${frac(M.p,F(M.sY))}) = <b>${R2(M.alpha,3)}</b>`;
+  $('calcNote').innerHTML=S.twoD?t('calcNote2',F(M.sY)):t('calcNote1',F(M.sY));
+}
+const RAMP=['#f0efec','#cde2fb','#b7d3f6','#9ec5f4','#86b6ef','#6da7ec','#5598e7','#3987e5','#2a78d6','#256abf','#1c5cab','#184f95','#104281'];
+function renderHeat(){
+  const M=icModel(),p=M.p,W=440,lab=34,cs=(W-lab)/p;let s='';
+  for(let i=0;i<p;i++){s+=`<text x="${lab-6}" y="${lab+cs*(i+.5)+4}" text-anchor="end" font-size="11">${i+1}</text><text x="${lab+cs*(i+.5)}" y="${lab-8}" text-anchor="middle" font-size="11">${i+1}</text>`;
+    for(let j=0;j<p;j++){const v=M.R[i][j],idx=i===j?0:clamp(Math.round(v*12),0,12);
+      s+=`<rect x="${lab+cs*j+1}" y="${lab+cs*i+1}" width="${cs-2}" height="${cs-2}" rx="3" fill="${i===j?'var(--wash)':RAMP[idx]}"/>`;
+      if(cs>26)s+=`<text x="${lab+cs*(j+.5)}" y="${lab+cs*(i+.5)+4}" text-anchor="middle" font-size="${cs>40?11.5:9.5}" style="fill:${i!==j&&idx>=7?'#fff':'var(--ink)'}">${i===j?'1':R2(v)}</text>`;}}
+  $('heat').innerHTML=s;
+}
+function renderOmh(){
+  const M=icModel(),g=M.general/M.sY,sp=(M.common-M.general)/M.sY,er=1-M.omega,lb=t('seg');
+  const seg=(v,c,l)=>`<div style="flex:${v} 1 0;background:${c}" title="${l}: ${pct(v)}">${v>.06?pct(v):''}</div>`;
+  let s=`<div class="explain">${t('omhExplain')}</div><div class="vbar">${seg(g,'var(--aqua)',lb[0])}${S.twoD?seg(sp,'var(--blue)',lb[1]):''}${seg(er,'var(--orange)',lb[2])}</div>`;
+  if(S.twoD){s+=`<div class="kpis k2 secret" style="margin-top:12px"><div class="kpi"><div class="k">ω<sub>total</sub></div><div class="v">${R2(M.omega,3)}</div><div class="f">${t('fOt')}</div></div><div class="kpi"><div class="k"><i style="background:var(--aqua)"></i>ω<sub>hierarchisch</sub></div><div class="v">${R2(M.omh,3)}</div><div class="f">${t('fOh')}</div></div></div><p class="take secret">${t('omhVerdict',M.omh)}</p>`;}
+  else s+=`<p class="take">${t('omh1D')}</p>`;
+  $('omhBody').innerHTML=S.lang==='en'?s.replace('ω<sub>hierarchisch</sub>','ω<sub>hierarchical</sub>'):s;
+}
+function renderSample2(){
+  const M=icModel();if(!sampleIC)sampleIC=sample2(S.seed2,S.n2);
+  $('sampleKpis').innerHTML=`<div class="kpi"><div class="k"><i style="background:var(--orange)"></i>${t('kAhat')}</div><div class="v">${R2(sampleIC.alpha)}</div><div class="f">${t('fPop',R2(M.alpha))}</div></div>
+    <div class="kpi"><div class="k"><i style="background:var(--blue)"></i>${t('kOhat')}</div><div class="v">${R2(sampleIC.omega)}</div><div class="f">${t('fPop',R2(M.omega))}</div></div>`;
+  if(!S.many2){$('hist2').innerHTML='';$('histTxt2').innerHTML=t('histEmpty2');return;}
+  $('hist2').innerHTML=histSVG([{v:S.many2.A,c:'var(--orange)'},{v:S.many2.O,c:'var(--blue)'}],[{v:M.alpha,c:'var(--orange-ink)',l:'α'},{v:M.omega,c:'var(--blue-ink)',l:'ω'}]);
+  $('histTxt2').innerHTML=t('histTxt2',S.n2,[quant(S.many2.A,.025),quant(S.many2.A,.975)],[quant(S.many2.O,.025),quant(S.many2.O,.975)]);
+}
+
+applyStatic();
+const h0=location.hash.slice(1);setArea(h0==='interne-konsistenz'?'interne-konsistenz':'test-test',false);
+})();
+</script>
+</body>
+</html>
