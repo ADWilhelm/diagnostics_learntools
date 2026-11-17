@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sensitivität, Spezifität & prädiktive Werte – interaktiv</title>
+<style>
+:root{
+  color-scheme: light;
+  --page:#f9f9f7; --surface:#fcfcfb; --ink:#0b0b0b; --ink2:#52514e; --muted:#898781;
+  --grid:#e1e0d9; --axis:#c3c2b7; --border:rgba(11,11,11,.10); --wash:#f0efec;
+  --krank:#2a78d6; --krank-l:#cde2fb; --krank-ink:#1c5cab;
+  --gesund:#eb6834; --gesund-l:#fbdccd; --gesund-ink:#b4461a;
+}
+@media (prefers-color-scheme: dark){
+  :root:where(:not([data-theme="light"])){
+    color-scheme: dark;
+    --page:#0d0d0d; --surface:#1a1a19; --ink:#f0efec; --ink2:#c3c2b7; --muted:#898781;
+    --grid:#2c2c2a; --axis:#383835; --border:rgba(255,255,255,.10); --wash:#252523;
+    --krank:#3987e5; --krank-l:#1f3a5c; --krank-ink:#86b6ef;
+    --gesund:#d95926; --gesund-l:#4a2a1c; --gesund-ink:#f0a07e;
+  }
+}
+*{box-sizing:border-box}
+html{font-size:15px}
+body.beamer{font-size:18px}
+body{margin:0;background:var(--page);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.45}
+.wrap{max-width:1240px;margin:0 auto;padding:20px 18px 40px}
+body.beamer .wrap{max-width:1600px}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:14px}
+h1{font-size:1.55em;margin:0 0 2px;font-weight:650;letter-spacing:-.01em}
+.sub{color:var(--ink2);margin:0;font-size:.95em}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+button{font:inherit;font-size:.9em;border:1px solid var(--border);background:var(--surface);color:var(--ink);padding:6px 12px;border-radius:8px;cursor:pointer}
+button:hover{border-color:var(--axis)}
+button.on{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.grid{display:grid;gap:14px;margin-top:14px;align-items:start}
+.g2{grid-template-columns:1fr 1fr}
+.g32{grid-template-columns:3fr 2fr}
+@media (max-width:900px){.g2,.g32{grid-template-columns:1fr}}
+
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-top:14px}
+.grid .panel{margin-top:0}
+.ph{display:flex;align-items:center;gap:8px;padding:10px 12px 10px 8px}
+.tog{flex:1;display:flex;align-items:center;gap:8px;border:0;background:none;padding:2px 6px;text-align:left;font-size:1em;font-weight:620;border-radius:6px}
+.tog:hover{background:var(--wash)}
+.tog .chev{display:inline-block;width:1em;color:var(--muted);transition:transform .15s;font-size:.85em}
+.panel.open .tog .chev{transform:rotate(90deg)}
+.tog .peek{font-weight:400;color:var(--muted);font-size:.85em;margin-left:auto;padding-left:10px;text-align:right}
+.panel.open .tog .peek{display:none}
+.info{width:26px;height:26px;padding:0;border-radius:50%;font-size:.8em;font-weight:700;font-style:italic;font-family:Georgia,serif;flex:none;color:var(--ink2)}
+.info.on{background:var(--ink);color:var(--surface)}
+.infobox{display:none;margin:0 16px 10px;padding:10px 12px;border-radius:8px;background:var(--wash);font-size:.9em;color:var(--ink)}
+.panel.showinfo>.infobox{display:block}
+.pb{display:none;padding:0 16px 16px}
+.panel.open>.pb{display:block}
+.hint{color:var(--ink2);font-size:.85em;margin:0 0 10px}
+
+.scen{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media (max-width:900px){.scen{grid-template-columns:1fr}}
+.sc{border:1px solid var(--border);border-radius:10px;padding:9px 12px;background:var(--page);display:flex;flex-direction:column;gap:6px}
+.sc.active{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}
+.sc .top{display:flex;justify-content:space-between;align-items:center;gap:6px;min-height:20px}
+.tag{font-size:.72em;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+.badge{font-size:.72em;padding:1px 7px;border-radius:999px;border:1px solid var(--axis);color:var(--ink2)}
+.sc h3{margin:0;font-size:.98em;font-weight:620}
+.sc p{margin:0;font-size:.82em;color:var(--ink2)}
+.sc .labels{font-size:.8em;color:var(--muted)}
+.sc .opts{display:flex;flex-wrap:wrap;gap:6px;margin-top:auto;padding-top:4px}
+.sc .opts button{font-size:.8em;padding:4px 9px}
+.sc .opts button small{opacity:.7}
+.foot{font-size:.8em;color:var(--muted);margin:10px 0 0}
+
+.controls{display:grid;grid-template-columns:repeat(3,1fr);gap:10px 22px}
+@media (max-width:900px){.controls{grid-template-columns:1fr}}
+.ctl label{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:.9em;font-weight:560}
+.ctl label small{font-weight:400;color:var(--muted)}
+.ctl .row{display:flex;gap:8px;align-items:center}
+.ctl input[type=range]{flex:1;accent-color:var(--ink);height:26px}
+input[type=number],.ctl input[type=text]{width:5.6em;font:inherit;font-size:.9em;padding:3px 6px;border:1px solid var(--border);border-radius:6px;background:var(--page);color:var(--ink);font-variant-numeric:tabular-nums}
+.ctl input[type=text]{width:100%}
+.ctl .unit{color:var(--muted);font-size:.85em;width:1.2em}
+.note{font-size:.82em;color:var(--muted);margin:0}
+select{font:inherit;font-size:.9em;padding:3px 6px;border-radius:6px;border:1px solid var(--border);background:var(--page);color:var(--ink)}
+.lblgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px 18px}
+@media (max-width:900px){.lblgrid{grid-template-columns:1fr 1fr}}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;align-items:center}
+.chips span{font-size:.85em;color:var(--ink2);margin-right:2px}
+.chips button{font-size:.8em;padding:4px 10px}
+
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+@media (max-width:760px){.kpis{grid-template-columns:repeat(2,1fr)}}
+.kpi{border:1px solid var(--border);border-radius:10px;padding:10px 12px;background:var(--page);position:relative}
+.kpi .k{font-size:.85em;color:var(--ink2);font-weight:560;display:flex;align-items:center;gap:6px;padding-right:28px}
+.kpi .k i{display:inline-block;width:10px;height:10px;border-radius:2px;flex:none}
+.kpi .v{font-size:2.3em;font-weight:650;letter-spacing:-.02em;line-height:1.15;margin:2px 0}
+.kpi .f{font-size:.82em;color:var(--muted)}
+.kpi .info{position:absolute;top:8px;right:8px;width:22px;height:22px}
+.kpi .kinfo{display:none;margin-top:8px;padding:8px 10px;border-radius:8px;background:var(--wash);font-size:.84em}
+.kpi.showinfo .kinfo{display:block}
+
+table.vft{border-collapse:separate;border-spacing:3px;width:100%;font-variant-numeric:tabular-nums;font-size:.95em}
+.vft th{font-weight:560;color:var(--ink2);font-size:.88em;padding:4px 6px;text-align:center}
+.vft td{text-align:center;padding:9px 6px;border-radius:6px}
+.vft td b{display:block;font-size:1.25em}
+.vft td small{font-size:.78em;opacity:.85}
+.vft .rp{background:var(--krank);color:#fff}
+.vft .fn{background:var(--krank-l)}
+.vft .fp{background:var(--gesund);color:#fff}
+.vft .rn{background:var(--gesund-l)}
+.vft .sum{background:var(--page);color:var(--ink2)}
+.formulas{margin-top:12px;font-size:.9em;display:grid;gap:6px}
+.formulas div{padding:6px 10px;border-radius:8px;background:var(--page);font-variant-numeric:tabular-nums}
+.formulas .lbl{font-weight:600;display:inline-block;min-width:3.4em}
+
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.84em;color:var(--ink2);margin-top:8px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i,.sw{display:inline-block;width:12px;height:12px;border-radius:3px;flex:none}
+.sw-rp{background:var(--krank)}.sw-fn{background:var(--krank-l);outline:1px solid var(--krank);outline-offset:-1px}
+.sw-fp{background:var(--gesund)}.sw-rn{background:var(--gesund-l);outline:1px solid var(--gesund);outline-offset:-1px}
+
+svg{display:block;width:100%;height:auto;overflow:visible}
+svg text{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;fill:var(--ink2)}
+.split .ttl{font-size:.88em;font-weight:560;margin:10px 0 4px;display:flex;justify-content:space-between;gap:8px}
+.split .ttl:first-child{margin-top:0}
+.split .ttl span{color:var(--muted);font-weight:400;white-space:nowrap}
+.split .sub2{font-size:.82em;color:var(--ink2);margin-top:4px;font-variant-numeric:tabular-nums}
+.bar{display:flex;height:34px;gap:2px;border-radius:6px;overflow:hidden}
+.bar div{display:flex;align-items:center;justify-content:center;font-size:.82em;font-weight:600;white-space:nowrap;overflow:hidden;min-width:0}
+.bigtake{margin-top:14px;padding:10px 12px;border-radius:8px;background:var(--page);font-size:.92em}
+
+/* Kosten */
+.costgrid{display:grid;grid-template-columns:2fr 3fr;gap:18px;align-items:start}
+@media (max-width:900px){.costgrid{grid-template-columns:1fr}}
+.meaning{display:grid;gap:8px;margin-top:12px}
+.meaning div{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border-radius:8px;background:var(--page);font-size:.88em}
+.meaning .sw{margin-top:4px}
+.meaning b{white-space:nowrap}
+.meaning .disc{font-size:.84em;color:var(--ink2);background:none;padding:0 2px}
+.ratioTxt{font-size:.9em;font-weight:600;margin:2px 0 0;min-height:1.4em}
+details.adv{margin-top:10px;font-size:.88em}
+details.adv summary{cursor:pointer;color:var(--ink2)}
+.advgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}
+.advgrid label{display:flex;flex-direction:column;gap:3px;font-size:.85em;color:var(--ink2)}
+.advgrid input{width:100%}
+.cbtab{width:100%;border-collapse:collapse;font-size:.88em;font-variant-numeric:tabular-nums;margin-top:6px}
+.cbtab td{padding:5px 4px;border-bottom:1px solid var(--grid)}
+.cbtab td:nth-child(n+2){text-align:right}
+.cbtab tr.tot td{font-weight:650;border-bottom:0;border-top:1.5px solid var(--axis)}
+.cbtab tr.cmp td{color:var(--ink2);border-bottom:0}
+.optline{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-top:8px;font-size:.88em}
+
+.secret{transition:filter .25s}
+body.guess:not(.revealed) .secret{filter:blur(9px);user-select:none;pointer-events:none}
+.revealbar{display:none;margin-top:14px;padding:10px 14px;border-radius:10px;background:var(--ink);color:var(--surface);align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+body.guess .revealbar{display:flex}
+.revealbar button{background:var(--surface);color:var(--ink)}
+.tabs{display:inline-flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;flex:none}
+.tabs button{border:0;border-radius:0;padding:4px 10px;font-size:.8em}
+#tip{position:fixed;pointer-events:none;background:var(--ink);color:var(--surface);font-size:13px;padding:6px 9px;border-radius:6px;opacity:0;transition:opacity .1s;z-index:10;font-variant-numeric:tabular-nums;max-width:260px}
+dl{display:grid;grid-template-columns:max-content 1fr;gap:6px 14px;font-size:.92em;margin:0}
+dt{font-weight:600}dd{margin:0;color:var(--ink2)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div>
+    <h1 data-t="title"></h1>
+    <p class="sub" data-t="sub"></p>
+  </div>
+  <div class="btns">
+    <button id="btnLang" lang="en"></button>
+    <button id="btnAll"></button>
+    <button id="btnGuess" data-t="guess"></button>
+    <button id="btnBeamer" data-t="beamer"></button>
+  </div>
+</header>
+
+<section class="panel open" data-panel="scen">
+  <div class="ph"><button class="tog"><span class="chev">▶</span><span data-t="pScen"></span><span class="peek" id="peekScen"></span></button><button class="info">i</button></div>
+  <div class="infobox" data-t="infoScen"></div>
+  <div class="pb"><div class="scen" id="scenGrid"></div><p class="foot" data-t="footScen"></p></div>
+</section>
+
+<section class="panel" data-panel="labels">
+  <div class="ph"><button class="tog"><span class="chev">▶</span><span data-t="pLabels"></span><span class="peek" id="peekLabels"></span></button><button class="info">i</button></div>
+  <div class="infobox" data-t="infoLabels"></div>
+  <div class="pb">
+    <div class="lblgrid">
+      <div class="ctl"><label><span data-t="lk"></span><small data-t="lkS"></small></label><input type="text" id="l_k" maxlength="30"></div>
+      <div class="ctl"><label><span data-t="lg"></span><small data-t="lgS"></small></label><input type="text" id="l_g" maxlength="30"></div>
+      <div class="ctl"><label><span data-t="lp"></span><small data-t="lpS"></small></label><input type="text" id="l_p" maxlength="30"></div>
+      <div class="ctl"><label><span data-t="ln"></span><small data-t="lnS"></small></label><input type="text" id="l_n" maxlength="30"></div>
+    </div>
+    <div class="chips" id="labelChips"></div>
+  </div>
+</section>
+
+<section class="panel open" data-panel="ctl">
+  <div class="ph"><button class="tog"><span class="chev">▶</span><span data-t="pCtl"></span><span class="peek" id="peekCtl"></span></button><button class="info">i</button></div>
+  <div class="infobox" id="infoCtl"></div>
+  <div class="pb">
+    <div class="controls">
+      <div class="ctl"><label><span data-t="lBr"></span><small id="lbBr"></small></label>
+        <div class="row"><input type="range" id="r_br" min="0" max="1000" step="1"><input type="number" id="n_br" min="0.1" max="99" step="0.1"><span class="unit">%</span></div></div>
+      <div class="ctl"><label><span data-t="lSens"></span><small id="lbSens"></small></label>
+        <div class="row"><input type="range" id="r_sens" min="1" max="99.9" step="0.1"><input type="number" id="n_sens" min="1" max="99.9" step="0.1"><span class="unit">%</span></div></div>
+      <div class="ctl"><label><span data-t="lSpec"></span><small id="lbSpec"></small></label>
+        <div class="row"><input type="range" id="r_spec" min="1" max="99.9" step="0.1"><input type="number" id="n_spec" min="1" max="99.9" step="0.1"><span class="unit">%</span></div></div>
+    </div>
+    <p class="note" style="margin-top:8px" data-t="noteCtl"></p>
+  </div>
+</section>
+
+<div class="revealbar"><span id="guessQ"></span><button id="btnReveal" data-t="reveal"></button></div>
+
+<section class="panel open" data-panel="kpi">
+  <div class="ph"><button class="tog"><span class="chev">▶</span><span data-t="pKpi"></span><span class="peek secret" id="peekKpi"></span></button><button class="info">i</button></div>
+  <div class="infobox" data-t="infoKpi"></div>
+  <div class="pb">
+    <div class="kpis">
+      <div class="kpi"><button class="info">i</button><div class="k" data-t="kSens"></div><div class="v" id="k_sens"></div><div class="f" id="f_sens"></div><div class="kinfo" id="i_sens"></div></div>
+      <div class="kpi"><button class="info">i</button><div class="k" data-t="kSpec"></div><div class="v" id="k_spec"></div><div class="f" id="f_spec"></div><div class="kinfo" id="i_spec"></div></div>
+      <div class="kpi"><button class="info">i</button><div class="k"><i style="background:var(--krank)"></i><span data-t="kPpv"></span></div><div class="v secret" id="k_ppv"></div><div class="f" id="f_ppv"></div><div class="kinfo" id="i_ppv"></div></div>
+      <div class="kpi"><button class="info">i</button><div class="k"><i style="background:var(--gesund)"></i><span data-t="kNpv"></span></div><div class="v secret" id="k_npv"></div><div class="f" id="f_npv"></div><div class="kinfo" id="i_npv"></div></div>
+    </div>
+  </div>
+</section>
+
+<div class="grid g32">
+  <section class="panel open" data-panel="icons">
+    <div class="ph"><button class="tog"><span class="chev">▶</span><span data-t="pIcons"></span></button><button class="info">i</button></div>
+    <div class="infobox" id="infoIcons"></div>
+    <div class="pb"><svg id="icons" viewBox="0 0 600 240" role="img"></svg><div class="legend" id="iconLegend"></div></div>
+  </section>
+  <section class="panel open" data-panel="split">
+    <div class="ph"><button class="tog"><span class="chev">▶</span><span data-t="pSplit"></span></button><button class="info">i</button></div>
+    <div class="infobox" id="infoSplit"></div>
+    <div class="pb"><div class="split secret" id="split"></div><div class="bigtake secret" id="takeaway"></div></div>
+  </section>
+</div>
+
+<div class="grid g2">
+  <section class="panel" data-panel="vft">
+    <div class="ph"><button class="tog"><span class="chev">▶</span><span data-t="pVft"></span></button><button class="info">i</button></div>
+    <div class="infobox" data-t="infoVft"></div>
+    <div class="pb">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px">
+        <p class="hint" style="margin:0" data-t="hintVft"></p>
+        <label style="font-size:.85em;color:var(--ink2);white-space:nowrap"><span data-t="persons"></span> <select id="s_N"><option value="100">100</option><option value="1000" selected>1000</option><option value="10000">10000</option><option value="100000">100000</option></select></label>
+      </div>
+      <table class="vft" id="vft"></table>
+      <div class="formulas" id="formulas"></div>
+    </div>
+  </section>
+  <section class="panel" data-panel="tree">
+    <div class="ph"><button class="tog"><span class="chev">▶</span><span data-t="pTree"></span></button><button class="info">i</button></div>
+    <div class="infobox" data-t="infoTree"></div>
+    <div class="pb"><svg id="tree" viewBox="0 0 620 300" role="img"></svg></div>
+  </section>
+</div>
+
+<div class="grid g2">
+  <section class="panel" data-panel="line">
+    <div class="ph"><button class="tog"><span class="chev">▶</span><span data-t="pLine"></span></button><button class="info">i</button></div>
+    <div class="infobox" data-t="infoLine"></div>
+    <div class="pb">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px">
+        <p class="hint" style="margin:0" data-t="hintLine"></p>
+        <div class="tabs"><button id="ax_log" class="on">log</button><button id="ax_lin">linear</button></div>
+      </div>
+      <div class="secret"><svg id="line" viewBox="0 0 600 300" role="img"></svg></div>
+      <div class="legend" id="lineLegend"></div>
+    </div>
+  </section>
+  <section class="panel" data-panel="dist">
+    <div class="ph"><button class="tog"><span class="chev">▶</span><span data-t="pDist"></span></button><button class="info">i</button></div>
+    <div class="infobox" data-t="infoDist"></div>
+    <div class="pb">
+      <div class="controls" style="grid-template-columns:1fr 1fr">
+        <div class="ctl"><label><span data-t="lD"></span><small data-t="lDs"></small></label>
+          <div class="row"><input type="range" id="r_d" min="0" max="5" step="0.01"><input type="number" id="n_d" min="-3" max="7" step="0.01"></div></div>
+        <div class="ctl"><label><span data-t="lC"></span><small data-t="lCs"></small></label>
+          <div class="row"><input type="range" id="r_c" min="-4" max="9" step="0.01"><input type="number" id="n_c" min="-4" max="9" step="0.01"></div></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin:10px 0 4px;flex-wrap:wrap">
+        <p class="hint" style="margin:0" data-t="hintDist"></p>
+        <label style="font-size:.85em;color:var(--ink2)"><input type="checkbox" id="c_weight"> <span data-t="weight"></span></label>
+      </div>
+      <svg id="dist" viewBox="0 0 600 250" role="img" style="touch-action:none;cursor:ew-resize"></svg>
+      <div class="legend" id="distLegend"></div>
+      <div style="display:grid;grid-template-columns:200px 1fr;gap:14px;align-items:center;margin-top:10px">
+        <svg id="roc" viewBox="0 0 220 220" role="img"></svg>
+        <div style="font-size:.88em;color:var(--ink2)" id="rocText"></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<section class="panel" data-panel="cost">
+  <div class="ph"><button class="tog"><span class="chev">▶</span><span data-t="pCost"></span><span class="peek" id="peekCost"></span></button><button class="info">i</button></div>
+  <div class="infobox" data-t="infoCost"></div>
+  <div class="pb">
+    <div class="costgrid">
+      <div>
+        <div class="ctl">
+          <label><span data-t="costQ"></span></label>
+          <div class="row"><input type="range" id="r_ratio" min="-100" max="100" step="1" value="0"></div>
+          <div style="display:flex;justify-content:space-between;font-size:.78em;color:var(--muted)"><span data-t="costL"></span><span data-t="costR"></span></div>
+          <p class="ratioTxt" id="ratioTxt"></p>
+        </div>
+        <details class="adv" id="advBox"><summary data-t="advSum"></summary>
+          <p class="note" style="margin:6px 0 0" data-t="advHint"></p>
+          <div class="advgrid">
+            <label><span id="al_RP"></span><input type="number" id="cv_RP" step="0.5"></label>
+            <label><span id="al_FP"></span><input type="number" id="cv_FP" step="0.5"></label>
+            <label><span id="al_FN"></span><input type="number" id="cv_FN" step="0.5"></label>
+            <label><span id="al_RN"></span><input type="number" id="cv_RN" step="0.5"></label>
+          </div>
+        </details>
+        <div class="meaning" id="meaning"></div>
+      </div>
+      <div>
+        <table class="cbtab" id="costTab"></table>
+        <svg id="costChart" viewBox="0 0 600 240" role="img" style="margin-top:12px"></svg>
+        <div class="optline"><span id="optTxt"></span><button id="btnOpt" data-t="btnOpt"></button></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="panel" data-panel="terms">
+  <div class="ph"><button class="tog"><span class="chev">▶</span><span data-t="pTerms"></span></button></div>
+  <div class="pb"><dl id="terms"></dl></div>
+</section>
+</div>
+<div id="tip"></div>
+
+<script>
+(() => {
+// ================= Mathe =================
+function erf(x){const s=Math.sign(x);x=Math.abs(x);const t=1/(1+0.3275911*x);
+  const y=1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-0.284496736)*t+0.254829592)*t*Math.exp(-x*x);return s*y;}
+const Phi=x=>0.5*(1+erf(x/Math.SQRT2));
+const pdf=x=>Math.exp(-x*x/2)/Math.sqrt(2*Math.PI);
+function invPhi(p){
+  const a=[-3.969683028665376e+01,2.209460984245205e+02,-2.759285104469687e+02,1.383577518672690e+02,-3.066479806614716e+01,2.506628277459239e+00];
+  const b=[-5.447609879822406e+01,1.615858368580409e+02,-1.556989798598866e+02,6.680131188771972e+01,-1.328068155288572e+01];
+  const c=[-7.784894002430293e-03,-3.223964580411365e-01,-2.400758277161838e+00,-2.549671010264233e+00,4.374664141464968e+00,2.938163982698783e+00];
+  const d=[7.784695709041462e-03,3.224671290700398e-01,2.445134137142996e+00,3.754408661907416e+00];
+  const pl=0.02425,ph=1-pl;let q,r;
+  if(p<pl){q=Math.sqrt(-2*Math.log(p));return (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1);}
+  if(p<=ph){q=p-0.5;r=q*q;return (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q/(((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1);}
+  q=Math.sqrt(-2*Math.log(1-p));return -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1);
+}
+const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+const ppvOf=(br,se,sp)=>{const n=se*br,dn=n+(1-sp)*(1-br);return dn>0?n/dn:0;};
+const npvOf=(br,se,sp)=>{const n=sp*(1-br),dn=n+(1-se)*br;return dn>0?n/dn:1;};
+
+// ================= Zustand =================
+const S={lang:'de',br:0.01,sens:0.9,spec:0.9,d:0,c:0,N:1000,weight:false,logx:true,scen:null,
+  ratio:1,costs:{RP:0,FP:1,FN:1,RN:0},costMode:'ratio'};
+const loc=()=>S.lang==='de'?'de-DE':'en-US';
+function pct(x,dig){if(dig===undefined){const v=x*100;dig=(v>0&&v<1)||(v>99&&v<100)?2:1;}
+  return (x*100).toLocaleString(loc(),{minimumFractionDigits:dig,maximumFractionDigits:dig})+(S.lang==='de'?' %':'%');}
+const num=(x,d=2)=>x.toLocaleString(loc(),{minimumFractionDigits:d,maximumFractionDigits:d});
+const int=x=>Math.round(x).toLocaleString(loc());
+const h=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const q=s=>S.lang==='de'?'„'+h(s)+'“':'“'+h(s)+'”';
+const trunc=(s,n)=>{s=String(s);return s.length>n?s.slice(0,n-1)+'…':s;};
+
+// ================= Bezeichnungen =================
+const LABELSETS={
+  krank:{chip:true,de:{name:'Krankheit',k:'krank',g:'gesund',p:'positiv',n:'negativ'},en:{name:'Illness',k:'ill',g:'healthy',p:'positive',n:'negative'}},
+  mammo:{chip:false,de:{k:'Brustkrebs',g:'kein Brustkrebs',p:'positiv',n:'negativ'},en:{k:'breast cancer',g:'no breast cancer',p:'positive',n:'negative'}},
+  schwanger:{chip:true,de:{name:'Schwangerschaft',k:'schwanger',g:'nicht schwanger',p:'positiv',n:'negativ'},en:{name:'Pregnancy',k:'pregnant',g:'not pregnant',p:'positive',n:'negative'}},
+  stoer:{chip:true,de:{name:'Störung (Screening)',k:'Störung',g:'keine Störung',p:'auffällig',n:'unauffällig'},en:{name:'Disorder (screening)',k:'disorder',g:'no disorder',p:'screen positive',n:'screen negative'}},
+  depr:{chip:false,de:{k:'depressiv',g:'nicht depressiv',p:'auffällig',n:'unauffällig'},en:{k:'depressed',g:'not depressed',p:'screen positive',n:'screen negative'}},
+  eignung:{chip:true,de:{name:'Eignung',k:'geeignet',g:'ungeeignet',p:'empfohlen',n:'nicht empfohlen'},en:{name:'Suitability',k:'suitable',g:'unsuitable',p:'recommended',n:'not recommended'}},
+  rueckfall:{chip:true,de:{name:'Rückfall',k:'rückfällig',g:'nicht rückfällig',p:'hohes Risiko',n:'niedriges Risiko'},en:{name:'Recidivism',k:'reoffends',g:'does not reoffend',p:'high risk',n:'low risk'}}
+};
+let L={set:'krank',...LABELSETS.krank.de};
+
+// ================= Szenarien =================
+const SCEN=[
+ {id:'grund',lab:'krank',ill:false,
+  de:{tag:'Grundprinzip',title:'Gleicher Test, drei Populationen',desc:'Ein Test mit 90 % Sensitivität und 90 % Spezifität wird in verschiedenen Settings eingesetzt. Nur die Basisrate ändert sich. Wie verändert sich der PPV?',
+      fp:'Gesunde werden beunruhigt und unnötig weiter untersucht.',fn:'Die Erkrankung bleibt unentdeckt, die Behandlung beginnt zu spät.'},
+  en:{tag:'Basic principle',title:'Same test, three populations',desc:'A test with 90% sensitivity and 90% specificity is used in different settings. Only the base rate changes. How does the PPV change?',
+      fp:'Healthy people are alarmed and undergo unnecessary further testing.',fn:'The illness goes undetected and treatment starts too late.'},
+  opts:[{de:'Screening',en:'Screening',br:.01,se:.90,sp:.90},{de:'Hausarztpraxis',en:'GP practice',br:.10,se:.90,sp:.90},{de:'Spezialambulanz',en:'Specialist clinic',br:.50,se:.90,sp:.90}]},
+ {id:'mammo',lab:'mammo',ill:false,
+  de:{tag:'Medizin · Lehrbuchbeispiel',title:'Mammographie-Screening',desc:'Klassisches Beispiel nach Gigerenzer (gerundete Werte): Rund 1 % der untersuchten Frauen ohne Symptome hat Brustkrebs. Wie wahrscheinlich ist Brustkrebs bei positivem Befund? Auch Fachleute schätzen das oft viel zu hoch.',
+      fp:'Angst, zusätzliche Bildgebung, eventuell eine Biopsie ohne Befund.',fn:'Ein Tumor wird übersehen und erst später entdeckt.'},
+  en:{tag:'Medicine · textbook example',title:'Mammography screening',desc:'Classic example after Gigerenzer (rounded values): about 1% of women screened without symptoms have breast cancer. How likely is breast cancer after a positive result? Even experts often greatly overestimate it.',
+      fp:'Anxiety, additional imaging, possibly a biopsy that finds nothing.',fn:'A tumour is missed and only discovered later.'},
+  opts:[{de:'Screening',en:'Screening',br:.01,se:.90,sp:.91}]},
+ {id:'preg',lab:'schwanger',ill:true,
+  de:{tag:'Medizin',title:'Schwangerschaftstest',desc:'Der Test wird meist bei konkretem Verdacht gemacht, die Basisrate ist also hoch. Was passiert, wenn derselbe sehr gute Test ohne jeden Anlass eingesetzt wird?',
+      fp:'Eine Schwangerschaft wird erwartet, die es nicht gibt: emotionale Belastung, Entscheidungen auf falscher Grundlage.',fn:'Die Schwangerschaft bleibt unbemerkt, z. B. weiter Alkohol oder Medikamente, keine Vorsorge.'},
+  en:{tag:'Medicine',title:'Pregnancy test',desc:'The test is usually taken when there is a specific suspicion, so the base rate is high. What happens if the same very good test is used without any reason?',
+      fp:'A pregnancy is expected that does not exist: emotional strain, decisions on a false basis.',fn:'The pregnancy goes unnoticed, e.g. continued alcohol or medication, no prenatal care.'},
+  opts:[{de:'Bei Verdacht',en:'With suspicion',br:.30,se:.98,sp:.99},{de:'Ohne Anlass',en:'Without reason',br:.02,se:.98,sp:.99}]},
+ {id:'depr',lab:'depr',ill:true,
+  de:{tag:'Klinische Psychologie',title:'Depressions-Screening per Fragebogen',desc:'Derselbe Fragebogen in der Allgemeinbevölkerung und in einer psychotherapeutischen Ambulanz. Wie viele „auffällige“ Personen sind tatsächlich depressiv?',
+      fp:'Unnötige Weiterdiagnostik, mögliche Etikettierung, gebundene Therapieressourcen.',fn:'Behandlungsbedürftige Personen erhalten keine Hilfe.'},
+  en:{tag:'Clinical psychology',title:'Depression screening questionnaire',desc:'The same questionnaire in the general population and in an outpatient psychotherapy clinic. How many people who screen positive are actually depressed?',
+      fp:'Unnecessary further assessment, possible labelling, tied-up treatment resources.',fn:'People who need treatment do not receive help.'},
+  opts:[{de:'Allgemeinbevölkerung',en:'General population',br:.05,se:.85,sp:.85},{de:'Ambulanz',en:'Outpatient clinic',br:.40,se:.85,sp:.85}]},
+ {id:'eign',lab:'eignung',ill:true,
+  de:{tag:'Eignungsdiagnostik',title:'Eignungstest in der Personalauswahl',desc:'Der PPV ist hier der Anteil tatsächlich Geeigneter unter den Empfohlenen. Was passiert mit diesem Anteil und mit den übersehenen Geeigneten, wenn der Cut-off strenger wird?',
+      fp:'Eine ungeeignete Person wird eingestellt: Fehlleistungen, Einarbeitungs- und Trennungskosten.',fn:'Eine geeignete Person wird abgelehnt: verlorenes Potenzial, unfair gegenüber der Person.'},
+  en:{tag:'Personnel selection',title:'Aptitude test in personnel selection',desc:'Here the PPV is the share of truly suitable people among those recommended. What happens to this share, and to the suitable applicants who are missed, when the cut-off becomes stricter?',
+      fp:'An unsuitable person is hired: poor performance, training and separation costs.',fn:'A suitable person is rejected: lost potential, unfair to the applicant.'},
+  opts:[{de:'Bewerbungspool',en:'Applicant pool',br:.30,se:.80,sp:.75}]},
+ {id:'rueck',lab:'rueckfall',ill:true,
+  de:{tag:'Rechtspsychologie',title:'Rückfallprognose',desc:'Seltene Ereignisse lassen sich schwer vorhersagen: Selbst ein brauchbares Instrument stuft viele Personen als „hohes Risiko“ ein, die nicht rückfällig werden. Das hat erhebliche Folgen für die Betroffenen.',
+      fp:'Eine Person wird fälschlich als gefährlich eingestuft: z. B. längere Unterbringung, Einschränkung von Freiheitsrechten.',fn:'Ein Rückfall wird nicht verhindert: mögliche neue Opfer.'},
+  en:{tag:'Forensic psychology',title:'Recidivism prediction',desc:'Rare events are hard to predict: even a useful instrument classifies many people as “high risk” who do not reoffend, with serious consequences for those affected.',
+      fp:'A person is wrongly judged dangerous: e.g. longer detention, restricted liberty.',fn:'A reoffence is not prevented: possible new victims.'},
+  opts:[{de:'Entlassene Population',en:'Released population',br:.10,se:.75,sp:.70}]}
+];
+
+// ================= Texte =================
+const T={
+de:{
+ docTitle:'Sensitivität, Spezifität & prädiktive Werte – interaktiv',
+ title:'Sensitivität, Spezifität &amp; prädiktive Werte',
+ sub:'Wie aussagekräftig ein Testergebnis ist, hängt von der Testgüte <em>und</em> von der Basisrate ab.',
+ lang:'English',allOpen:'Alle aufklappen',allClose:'Alle zuklappen',guess:'Ratemodus',beamer:'Beamer-Modus',infoTip:'Erklärung',
+ pScen:'Szenario wählen',infoScen:'Ein Klick lädt Basisrate, Sensitivität, Spezifität und passende Bezeichnungen. Danach lässt sich alles frei verändern. Bei Szenarien mit mehreren Varianten bleibt der Test gleich, nur die Basisrate ändert sich.',
+ footScen:'Mit „illustrativ“ markierte Zahlen sind fiktiv und dienen nur der Veranschaulichung. Sie sind keine Kennwerte realer Verfahren.',
+ own:'eigene Einstellung',illus:'illustrativ',test:'Test',
+ pLabels:'Bezeichnungen anpassen',infoLabels:'Die Logik gilt für jede Ja/Nein-Entscheidung: Es gibt einen <b>tatsächlichen Zustand</b> (Kriterium) und ein <b>Testergebnis</b> (Prädiktor). Ob es um Krankheit, Eignung oder Rückfall geht, ändert an den Formeln nichts. Fachbegriffe wie „richtig positiv“ oder „falsch negativ“ bleiben deshalb gleich. „Positiv“ meint immer: Der Test zeigt das Zielmerkmal an.',
+ lk:'Zielmerkmal vorhanden',lkS:'statt „krank“',lg:'Zielmerkmal nicht vorhanden',lgS:'statt „gesund“',lp:'Testergebnis +',lpS:'statt „positiv“',ln:'Testergebnis −',lnS:'statt „negativ“',templates:'Vorlagen:',
+ pCtl:'Einstellungen',lBr:'Basisrate',lSens:'Sensitivität',lSpec:'Spezifität',
+ noteCtl:'Wie Sensitivität und Spezifität über den Cut-off zusammenhängen, zeigt das Panel „Verteilungen &amp; Cut-off“.',
+ infoCtl:L=>`<b>Basisrate</b> (Prävalenz): Anteil der Personen, die ${q(L.k)} sind, in der untersuchten Population, also vor jedem Test. <b>Sensitivität</b> und <b>Spezifität</b> beschreiben die Testgüte und gelten näherungsweise unabhängig von der Population. Das „+“ steht für ${q(L.p)}, das „−“ für ${q(L.n)}.`,
+ reveal:'Auflösen',guessQ:L=>`Ratemodus: Eine Person erhält das Ergebnis ${q(L.p)}. Wie wahrscheinlich ist sie tatsächlich ${q(L.k)}?`,
+ pKpi:'Kennwerte',infoKpi:'<b>Sensitivität und Spezifität</b> beschreiben den Test: Wie gut erkennt er die beiden Gruppen? <b>PPV und NPV</b> beantworten die Frage aus der Praxis: Was bedeutet ein konkretes Ergebnis für die getestete Person? Die <i>i</i>-Buttons erklären die einzelnen Werte.',
+ kSens:'Sensitivität',kSpec:'Spezifität',kPpv:'Positiver prädiktiver Wert',kNpv:'Negativer prädiktiver Wert',
+ iSens:L=>`Von allen Personen, die tatsächlich ${q(L.k)} sind: Welcher Anteil erhält das Ergebnis ${q(L.p)}? Hohe Sensitivität bedeutet: wenige übersehene Fälle (falsch negativ).`,
+ iSpec:L=>`Von allen Personen, die tatsächlich ${q(L.g)} sind: Welcher Anteil erhält korrekt das Ergebnis ${q(L.n)}? Hohe Spezifität bedeutet: wenige Fehlalarme (falsch positiv).`,
+ iPpv:L=>`Die Frage aus der Praxis: Das Ergebnis lautet ${q(L.p)}. Wie wahrscheinlich ist die Person tatsächlich ${q(L.k)}? Hängt stark von der Basisrate ab.`,
+ iNpv:L=>`Das Ergebnis lautet ${q(L.n)}. Wie wahrscheinlich ist die Person tatsächlich ${q(L.g)}? Sinkt, wenn die Basisrate steigt.`,
+ pIcons:'1.000 Personen',
+ infoIcons:L=>`Jedes Kästchen ist eine Person. <b>Farbton</b> = tatsächlicher Zustand (blau: ${h(L.k)}, orange: ${h(L.g)}). <b>Gefüllt</b> = Ergebnis ${q(L.p)}, <b>hell</b> = Ergebnis ${q(L.n)}. Natürliche Häufigkeiten wie „9 von 1.000“ sind leichter zu verstehen als bedingte Wahrscheinlichkeiten (Gigerenzer &amp; Hoffrage, 1995).`,
+ pSplit:'Wer steckt hinter einem Ergebnis?',
+ infoSplit:L=>`Der <b>PPV</b> betrachtet nur Personen mit Ergebnis ${q(L.p)}, der <b>NPV</b> nur Personen mit Ergebnis ${q(L.n)}. Die Bezugsgruppe ist also eine andere als bei Sensitivität und Spezifität. Genau hier entsteht der typische Denkfehler, die beiden Richtungen zu verwechseln.`,
+ result:'Ergebnis',of1000:n=>`${n} von 1.000`,
+ take:(pos,rp,fp,L,ppv)=>`Von ${pos} Personen mit Ergebnis ${q(L.p)} sind <b>${rp}</b> tatsächlich ${h(L.k)} und <b>${fp}</b> ${h(L.g)} (PPV ≈ ${ppv}).`,
+ takeRatio:r=>` Auf jeden richtig positiven Fall kommen etwa <b>${r}</b> falsch positive.`,
+ takeNone:L=>` Bei dieser Basisrate ist unter 1.000 Personen rechnerisch kaum jemand ${h(L.k)}.`,
+ cat:{RP:'richtig positiv',FN:'falsch negativ',FP:'falsch positiv',RN:'richtig negativ'},
+ A:{RP:'RP',FP:'FP',FN:'FN',RN:'RN'},sensA:'Sens',specA:'Spez',
+ pVft:'Vierfeldertafel',infoVft:'<b>Spalten</b> = tatsächlicher Zustand, <b>Zeilen</b> = Testergebnis. Sensitivität und Spezifität werden <b>spaltenweise</b> berechnet (Bezugsgruppe: der wahre Zustand), PPV und NPV <b>zeilenweise</b> (Bezugsgruppe: das Testergebnis). Deshalb hängen nur PPV und NPV davon ab, wie die Spalten zueinander stehen, also von der Basisrate.',
+ hintVft:'Natürliche Häufigkeiten, auf ganze Personen gerundet.',persons:'Personen:',
+ pTree:'Häufigkeitsbaum',infoTree:'Gleiche Information wie die Vierfeldertafel, aber in der Reihenfolge, in der sie entsteht: Zuerst teilt die <b>Basisrate</b> die Population in zwei Gruppen, dann teilen <b>Sensitivität</b> und <b>Spezifität</b> jede Gruppe nach dem Testergebnis. Für den PPV nimmt man die beiden „+“-Äste zusammen und fragt, welcher Anteil davon aus dem linken Ast stammt. Die Populationsgröße stellst du in der Vierfeldertafel ein.',
+ treePersons:'Personen',treeBr:'Basisrate',
+ pLine:'Prädiktive Werte über die Basisrate',infoLine:'Die Testgüte bleibt fest, nur die Basisrate variiert. Der <b>PPV steigt</b> mit der Basisrate, der <b>NPV fällt</b>. Bei seltenen Merkmalen ist ein positives Ergebnis deshalb oft wenig aussagekräftig, bei häufigen ein negatives. Die logarithmische Achse zeigt den Bereich seltener Merkmale genauer. Ein Klick in die Grafik übernimmt die Basisrate.',
+ hintLine:'Der Punkt markiert die aktuelle Basisrate.',lineX:'Basisrate in %',logSfx:' (logarithmische Achse)',clickBr:'Klick: Basisrate übernehmen',
+ pDist:'Verteilungen &amp; Cut-off',infoDist:'<b>Modell:</b> Die Testwerte beider Gruppen sind normalverteilt mit gleicher Varianz. <b>d′</b> ist der Abstand der Mittelwerte in Standardabweichungen. Der <b>Cut-off</b> legt fest, ab welchem Testwert das Ergebnis „+“ lautet. Wird er verschoben, ändern sich Sensitivität und Spezifität <b>gegenläufig</b>. Beide zugleich verbessert nur ein trennschärferer Test (größeres d′). Die <b>ROC-Kurve</b> zeigt alle möglichen Cut-offs eines Tests; die AUC fasst seine Trennschärfe zusammen. Das Modell ist eine Vereinfachung.',
+ lD:'Trennschärfe d′',lDs:'Abstand der Mittelwerte',lC:'Cut-off',lCs:'ab hier: Ergebnis +',hintDist:'Den Cut-off kannst du auch mit der Maus in der Grafik verschieben.',weight:'nach Basisrate gewichten',
+ distX:g=>`Testwert (z-Werte der Gruppe „${g}“)`,cutLbl:c=>`Cut-off ${c} (rechts davon: +)`,
+ rocX:'1 − Spezifität (%)',rocY:'Sensitivität (%)',
+ rocTxt:(d,auc)=>`<b style="color:var(--ink)">ROC-Kurve</b><br>Jeder Punkt der Kurve ist ein möglicher Cut-off desselben Tests; der blaue Punkt zeigt den aktuellen, der Ring den kostenoptimalen.<br><br>d′ = ${d}, AUC = ${auc}<br><br>Ein besserer Test (größeres d′) schiebt die ganze Kurve nach links oben. Der Cut-off wählt nur einen Punkt <em>auf</em> der Kurve.`,
+ pCost:'Kosten von Fehlentscheidungen',
+ infoCost:'Sensitivität und Spezifität sagen nichts darüber, <b>welcher Fehler schlimmer ist</b>. Das ist eine Wertentscheidung, keine statistische Frage. Gewichtet man die Fehler, lässt sich der Cut-off bestimmen, der die <b>erwarteten Gesamtkosten</b> minimiert. Wiegen falsch negative Ergebnisse schwerer, wandert das Optimum nach links (höhere Sensitivität); wiegen Fehlalarme schwerer, nach rechts (höhere Spezifität). Auch die <b>Basisrate</b> verschiebt das Optimum: Bei seltenen Merkmalen lohnt ein strengerer Cut-off. Die Enden der Kostenkurve entsprechen den Strategien „alle +“ und „alle −“, also einer Entscheidung ohne Test. Berechnung über das Verteilungsmodell (d′ und Cut-off).',
+ costQ:'Wie schwer wiegt ein falsch negatives im Vergleich zu einem falsch positiven Ergebnis?',costL:'Fehlalarm (FP) schlimmer',costR:'Übersehen (FN) schlimmer',
+ ratioEq:'Beide Fehler wiegen gleich schwer.',ratioFN:r=>`Ein falsch negatives Ergebnis wiegt <b>${r}-mal</b> so schwer wie ein falsch positives.`,ratioFP:r=>`Ein falsch positives Ergebnis wiegt <b>${r}-mal</b> so schwer wie ein falsch negatives.`,ratioCustom:'Individuelle Kosten (siehe Felder).',
+ advSum:'Kosten und Nutzen einzeln festlegen',advHint:'Kosten positiv, Nutzen negativ eintragen (z. B. richtig positiv = −2). Der Regler setzt die Felder zurück.',
+ meanTitle:sc=>sc?`Was die Fehler im Szenario „${sc}“ bedeuten:`:'Was die Fehler hier bedeuten:',
+ meanFPgen:L=>`Personen, die ${q(L.g)} sind, erhalten das Ergebnis ${q(L.p)}.`,meanFNgen:L=>`Personen, die ${q(L.k)} sind, erhalten das Ergebnis ${q(L.n)}.`,
+ meanDisc:'Diskussionsfrage: Welcher Fehler wiegt hier schwerer, und um wie viel? Darauf gibt es keine statistische Antwort.',
+ cbHead:['Ergebnis (pro 1.000)','Anzahl','× Kosten','= Summe'],cbTot:'Gesamtkosten beim aktuellen Cut-off',cbAllP:'Zum Vergleich ohne Test: alle als „+“',cbAllN:'Zum Vergleich ohne Test: alle als „−“',
+ costX:'Cut-off',costY:'erwartete Kosten pro 1.000',optLbl:'optimal',curLbl:'aktuell',
+ optTxt:(c,se,sp,cost)=>`Kostenoptimaler Cut-off: <b>${c}</b> (Sens ${se}, Spez ${sp}) mit erwarteten Kosten von <b>${cost}</b> pro 1.000.`,
+ optNone:(w)=>`Bei diesen Kosten lohnt sich der Test nicht: Am günstigsten wäre es, alle als ${w} einzustufen.`,
+ btnOpt:'Optimalen Cut-off übernehmen',peekCost:(r,tot)=>`Gewichtung FN : FP = ${r} · Gesamtkosten ${tot}`,
+ pTerms:'Begriffe &amp; Formeln',
+ terms:(L,A)=>`<dt>Basisrate</dt><dd>Anteil mit Zielmerkmal ${q(L.k)} in der Population: P(${h(L.k)}).</dd>
+  <dt>Sensitivität</dt><dd>P(+ | ${h(L.k)}) = ${A.RP} / (${A.RP} + ${A.FN})</dd>
+  <dt>Spezifität</dt><dd>P(− | ${h(L.g)}) = ${A.RN} / (${A.RN} + ${A.FP})</dd>
+  <dt>PPV</dt><dd>P(${h(L.k)} | +) = ${A.RP} / (${A.RP} + ${A.FP}) = Sens · BR / [Sens · BR + (1 − Spez) · (1 − BR)]  (Satz von Bayes)</dd>
+  <dt>NPV</dt><dd>P(${h(L.g)} | −) = ${A.RN} / (${A.RN} + ${A.FN}) = Spez · (1 − BR) / [Spez · (1 − BR) + (1 − Sens) · BR]</dd>
+  <dt>Erwartete Kosten</dt><dd>BR · [Sens · K(${A.RP}) + (1 − Sens) · K(${A.FN})] + (1 − BR) · [(1 − Spez) · K(${A.FP}) + Spez · K(${A.RN})]</dd>
+  <dt>Kernaussage</dt><dd>Sensitivität und Spezifität sind (näherungsweise) Eigenschaften des Tests. PPV und NPV hängen zusätzlich von der Basisrate ab. Welcher Cut-off „richtig“ ist, hängt außerdem davon ab, wie schwer die beiden Fehlerarten wiegen.</dd>`
+},
+en:{
+ docTitle:'Sensitivity, specificity & predictive values – interactive',
+ title:'Sensitivity, specificity &amp; predictive values',
+ sub:'How informative a test result is depends on the quality of the test <em>and</em> on the base rate.',
+ lang:'Deutsch',allOpen:'Expand all',allClose:'Collapse all',guess:'Guessing mode',beamer:'Projector mode',infoTip:'Explanation',
+ pScen:'Choose a scenario',infoScen:'One click loads base rate, sensitivity, specificity and matching labels. Everything can then be changed freely. In scenarios with several variants the test stays the same and only the base rate changes.',
+ footScen:'Numbers marked “illustrative” are fictitious and only serve as examples. They are not characteristics of real instruments.',
+ own:'custom setting',illus:'illustrative',test:'Test',
+ pLabels:'Customise labels',infoLabels:'The logic holds for any yes/no decision: there is a <b>true state</b> (criterion) and a <b>test result</b> (predictor). Whether the topic is illness, suitability or recidivism does not change the formulas. Technical terms such as “true positive” or “false negative” therefore stay the same. “Positive” always means: the test indicates the target condition.',
+ lk:'Target condition present',lkS:'instead of “ill”',lg:'Target condition absent',lgS:'instead of “healthy”',lp:'Test result +',lpS:'instead of “positive”',ln:'Test result −',lnS:'instead of “negative”',templates:'Templates:',
+ pCtl:'Settings',lBr:'Base rate',lSens:'Sensitivity',lSpec:'Specificity',
+ noteCtl:'How sensitivity and specificity are linked via the cut-off is shown in the panel “Distributions &amp; cut-off”.',
+ infoCtl:L=>`<b>Base rate</b> (prevalence): share of people who are ${q(L.k)} in the population examined, i.e. before any test. <b>Sensitivity</b> and <b>specificity</b> describe the quality of the test and are approximately independent of the population. “+” stands for ${q(L.p)}, “−” for ${q(L.n)}.`,
+ reveal:'Reveal',guessQ:L=>`Guessing mode: a person gets the result ${q(L.p)}. How likely is it that they are actually ${q(L.k)}?`,
+ pKpi:'Key figures',infoKpi:'<b>Sensitivity and specificity</b> describe the test: how well does it identify the two groups? <b>PPV and NPV</b> answer the practical question: what does a specific result mean for the person tested? The <i>i</i> buttons explain each value.',
+ kSens:'Sensitivity',kSpec:'Specificity',kPpv:'Positive predictive value',kNpv:'Negative predictive value',
+ iSens:L=>`Of all people who are actually ${q(L.k)}: what share gets the result ${q(L.p)}? High sensitivity means few missed cases (false negatives).`,
+ iSpec:L=>`Of all people who are actually ${q(L.g)}: what share correctly gets the result ${q(L.n)}? High specificity means few false alarms (false positives).`,
+ iPpv:L=>`The practical question: the result is ${q(L.p)}. How likely is the person actually ${q(L.k)}? Depends strongly on the base rate.`,
+ iNpv:L=>`The result is ${q(L.n)}. How likely is the person actually ${q(L.g)}? Decreases as the base rate rises.`,
+ pIcons:'1,000 people',
+ infoIcons:L=>`Each square is one person. <b>Hue</b> = true state (blue: ${h(L.k)}, orange: ${h(L.g)}). <b>Filled</b> = result ${q(L.p)}, <b>light</b> = result ${q(L.n)}. Natural frequencies such as “9 out of 1,000” are easier to understand than conditional probabilities (Gigerenzer &amp; Hoffrage, 1995).`,
+ pSplit:'Who is behind a result?',
+ infoSplit:L=>`The <b>PPV</b> only looks at people with result ${q(L.p)}, the <b>NPV</b> only at people with result ${q(L.n)}. The reference group is therefore different from sensitivity and specificity. This is exactly where the typical error of confusing the two directions arises.`,
+ result:'Result',of1000:n=>`${n} of 1,000`,
+ take:(pos,rp,fp,L,ppv)=>`Of ${pos} people with result ${q(L.p)}, <b>${rp}</b> are actually ${h(L.k)} and <b>${fp}</b> are ${h(L.g)} (PPV ≈ ${ppv}).`,
+ takeRatio:r=>` For every true positive there are about <b>${r}</b> false positives.`,
+ takeNone:L=>` At this base rate, hardly anyone among 1,000 people is ${h(L.k)}.`,
+ cat:{RP:'true positive',FN:'false negative',FP:'false positive',RN:'true negative'},
+ A:{RP:'TP',FP:'FP',FN:'FN',RN:'TN'},sensA:'Sens',specA:'Spec',
+ pVft:'2 × 2 table',infoVft:'<b>Columns</b> = true state, <b>rows</b> = test result. Sensitivity and specificity are computed <b>by column</b> (reference group: the true state), PPV and NPV <b>by row</b> (reference group: the test result). That is why only PPV and NPV depend on how the columns relate to each other, i.e. on the base rate.',
+ hintVft:'Natural frequencies, rounded to whole people.',persons:'People:',
+ pTree:'Frequency tree',infoTree:'The same information as the 2 × 2 table, but in the order in which it arises: first the <b>base rate</b> splits the population into two groups, then <b>sensitivity</b> and <b>specificity</b> split each group by test result. For the PPV, combine the two “+” branches and ask what share comes from the left branch. Set the population size in the 2 × 2 table.',
+ treePersons:'People',treeBr:'Base rate',
+ pLine:'Predictive values across base rates',infoLine:'Test quality is held constant, only the base rate varies. The <b>PPV rises</b> with the base rate, the <b>NPV falls</b>. For rare conditions a positive result is therefore often not very informative; for common ones a negative result is less informative. The logarithmic axis shows the range of rare conditions in more detail. Clicking in the chart sets the base rate.',
+ hintLine:'The dot marks the current base rate.',lineX:'Base rate in %',logSfx:' (logarithmic axis)',clickBr:'Click: use this base rate',
+ pDist:'Distributions &amp; cut-off',infoDist:'<b>Model:</b> test scores in both groups are normally distributed with equal variance. <b>d′</b> is the distance between the means in standard deviations. The <b>cut-off</b> determines from which score on the result is “+”. Moving it changes sensitivity and specificity in <b>opposite directions</b>. Only a more discriminating test (larger d′) improves both. The <b>ROC curve</b> shows all possible cut-offs of a test; the AUC summarises its discriminating power. The model is a simplification.',
+ lD:'Discriminability d′',lDs:'distance between means',lC:'Cut-off',lCs:'from here: result +',hintDist:'You can also drag the cut-off with the mouse in the chart.',weight:'weight by base rate',
+ distX:g=>`Test score (z-scores of group “${g}”)`,cutLbl:c=>`Cut-off ${c} (right of it: +)`,
+ rocX:'1 − specificity (%)',rocY:'Sensitivity (%)',
+ rocTxt:(d,auc)=>`<b style="color:var(--ink)">ROC curve</b><br>Every point on the curve is a possible cut-off of the same test; the blue dot shows the current one, the ring the cost-optimal one.<br><br>d′ = ${d}, AUC = ${auc}<br><br>A better test (larger d′) shifts the whole curve towards the top left. The cut-off only selects a point <em>on</em> the curve.`,
+ pCost:'Costs of wrong decisions',
+ infoCost:'Sensitivity and specificity say nothing about <b>which error is worse</b>. That is a value judgement, not a statistical question. Once the errors are weighted, the cut-off that minimises the <b>expected total cost</b> can be determined. If false negatives weigh more, the optimum moves left (higher sensitivity); if false alarms weigh more, it moves right (higher specificity). The <b>base rate</b> also shifts the optimum: for rare conditions a stricter cut-off pays off. The ends of the cost curve correspond to the strategies “all +” and “all −”, i.e. deciding without a test. Computed with the distribution model (d′ and cut-off).',
+ costQ:'How much does a false negative weigh compared with a false positive?',costL:'False alarm (FP) worse',costR:'Missed case (FN) worse',
+ ratioEq:'Both errors weigh the same.',ratioFN:r=>`A false negative weighs <b>${r} times</b> as much as a false positive.`,ratioFP:r=>`A false positive weighs <b>${r} times</b> as much as a false negative.`,ratioCustom:'Custom costs (see fields).',
+ advSum:'Set costs and benefits individually',advHint:'Enter costs as positive and benefits as negative numbers (e.g. true positive = −2). The slider resets the fields.',
+ meanTitle:sc=>sc?`What the errors mean in the scenario “${sc}”:`:'What the errors mean here:',
+ meanFPgen:L=>`People who are ${q(L.g)} get the result ${q(L.p)}.`,meanFNgen:L=>`People who are ${q(L.k)} get the result ${q(L.n)}.`,
+ meanDisc:'Discussion question: which error weighs more here, and by how much? There is no statistical answer to this.',
+ cbHead:['Result (per 1,000)','Count','× cost','= total'],cbTot:'Total cost at current cut-off',cbAllP:'For comparison without test: all as “+”',cbAllN:'For comparison without test: all as “−”',
+ costX:'Cut-off',costY:'expected cost per 1,000',optLbl:'optimal',curLbl:'current',
+ optTxt:(c,se,sp,cost)=>`Cost-optimal cut-off: <b>${c}</b> (Sens ${se}, Spec ${sp}) with an expected cost of <b>${cost}</b> per 1,000.`,
+ optNone:(w)=>`With these costs the test does not pay off: it would be cheapest to classify everyone as ${w}.`,
+ btnOpt:'Use optimal cut-off',peekCost:(r,tot)=>`Weight FN : FP = ${r} · total cost ${tot}`,
+ pTerms:'Terms &amp; formulas',
+ terms:(L,A)=>`<dt>Base rate</dt><dd>Share with target condition ${q(L.k)} in the population: P(${h(L.k)}).</dd>
+  <dt>Sensitivity</dt><dd>P(+ | ${h(L.k)}) = ${A.RP} / (${A.RP} + ${A.FN})</dd>
+  <dt>Specificity</dt><dd>P(− | ${h(L.g)}) = ${A.RN} / (${A.RN} + ${A.FP})</dd>
+  <dt>PPV</dt><dd>P(${h(L.k)} | +) = ${A.RP} / (${A.RP} + ${A.FP}) = Sens · BR / [Sens · BR + (1 − Spec) · (1 − BR)]  (Bayes’ theorem)</dd>
+  <dt>NPV</dt><dd>P(${h(L.g)} | −) = ${A.RN} / (${A.RN} + ${A.FN}) = Spec · (1 − BR) / [Spec · (1 − BR) + (1 − Sens) · BR]</dd>
+  <dt>Expected cost</dt><dd>BR · [Sens · C(${A.RP}) + (1 − Sens) · C(${A.FN})] + (1 − BR) · [(1 − Spec) · C(${A.FP}) + Spec · C(${A.RN})]</dd>
+  <dt>Key message</dt><dd>Sensitivity and specificity are (approximately) properties of the test. PPV and NPV also depend on the base rate. Which cut-off is “right” further depends on how much the two kinds of error weigh.</dd>`
+}};
+const t=(k,...a)=>{const v=T[S.lang][k];return typeof v==='function'?v(...a):v;};
+
+// ================= Kern =================
+function fromSensSpec(){const se=clamp(S.sens,0.001,0.999),sp=clamp(S.spec,0.001,0.999);S.c=invPhi(sp);S.d=S.c-invPhi(1-se);}
+function fromCut(){S.sens=1-Phi(S.c-S.d);S.spec=Phi(S.c);}
+function counts(N){const K=Math.round(S.br*N),G=N-K;const RP=Math.round(S.sens*K),FN=K-RP;const FP=Math.round((1-S.spec)*G),RN=G-FP;return {N,K,G,RP,FN,FP,RN};}
+function expCost(c){const se=1-Phi(c-S.d),sp=Phi(c),k=S.costs;
+  return 1000*(S.br*(se*k.RP+(1-se)*k.FN)+(1-S.br)*((1-sp)*k.FP+sp*k.RN));}
+function optimum(){let best=null;const lo=Math.min(0,S.d)-6,hi=Math.max(0,S.d)+6,n=1200;
+  for(let i=0;i<=n;i++){const c=lo+(hi-lo)*i/n,v=expCost(c);if(!best||v<best.v)best={c,v};}
+  const allP=1000*(S.br*S.costs.RP+(1-S.br)*S.costs.FP),allN=1000*(S.br*S.costs.FN+(1-S.br)*S.costs.RN);
+  const edge=best.c<=lo+0.01||best.c>=hi-0.01;
+  return {...best,allP,allN,useless:edge||best.v>=Math.min(allP,allN)-1e-6};}
+
+const $=id=>document.getElementById(id);
+const brToPos=br=>Math.round((Math.log10(br)+3)/(Math.log10(0.99)+3)*1000);
+const posToBr=p=>Math.pow(10,-3+p/1000*(Math.log10(0.99)+3));
+
+function syncInputs(skip){
+  const set=(id,v)=>{if(skip!==id)$(id).value=v;};
+  set('r_br',brToPos(S.br));set('n_br',+(S.br*100).toFixed(S.br<0.01?2:1));
+  set('r_sens',(S.sens*100).toFixed(1));set('n_sens',+(S.sens*100).toFixed(1));
+  set('r_spec',(S.spec*100).toFixed(1));set('n_spec',+(S.spec*100).toFixed(1));
+  set('r_d',S.d.toFixed(2));set('n_d',+S.d.toFixed(2));
+  set('r_c',S.c.toFixed(2));set('n_c',+S.c.toFixed(2));
+  for(const k of ['RP','FP','FN','RN'])if(skip!=='cv_'+k)$('cv_'+k).value=+S.costs[k].toFixed(2);
+}
+function changed(skip,keepScen){if(!keepScen)S.scen=null;syncInputs(skip);
+  if(document.body.classList.contains('guess'))document.body.classList.remove('revealed');render();}
+
+$('r_br').addEventListener('input',e=>{S.br=posToBr(+e.target.value);changed('r_br');});
+$('n_br').addEventListener('change',e=>{S.br=clamp(+e.target.value/100,0.001,0.99);changed();});
+for(const k of ['sens','spec']){
+  $('r_'+k).addEventListener('input',e=>{S[k]=+e.target.value/100;fromSensSpec();changed('r_'+k);});
+  $('n_'+k).addEventListener('change',e=>{S[k]=clamp(+e.target.value/100,0.01,0.999);fromSensSpec();changed();});
+}
+for(const k of ['d','c']){
+  $('r_'+k).addEventListener('input',e=>{S[k]=+e.target.value;fromCut();changed('r_'+k);});
+  $('n_'+k).addEventListener('change',e=>{S[k]=+e.target.value;fromCut();changed();});
+}
+$('r_ratio').addEventListener('input',e=>{const p=+e.target.value;S.ratio=Math.pow(20,p/100);
+  if(Math.abs(p)<4){S.ratio=1;}S.costMode='ratio';S.costs={RP:0,RN:0,FP:S.ratio>=1?1:+(1/S.ratio).toFixed(1),FN:S.ratio>=1?+S.ratio.toFixed(1):1};
+  syncInputs('r_ratio');render();});
+for(const k of ['RP','FP','FN','RN'])$('cv_'+k).addEventListener('input',e=>{const v=parseFloat(e.target.value);if(isNaN(v))return;
+  S.costs[k]=v;S.costMode='custom';syncInputs('cv_'+k);render();});
+$('btnOpt').addEventListener('click',()=>{const o=optimum();if(o.useless)return;S.c=clamp(o.c,-4,9);fromCut();changed();});
+$('s_N').addEventListener('change',e=>{S.N=+e.target.value;render();});
+$('c_weight').addEventListener('change',e=>{S.weight=e.target.checked;render();});
+$('btnGuess').addEventListener('click',()=>{document.body.classList.toggle('guess');document.body.classList.remove('revealed');$('btnGuess').classList.toggle('on');});
+$('btnReveal').addEventListener('click',()=>document.body.classList.add('revealed'));
+$('btnBeamer').addEventListener('click',()=>{document.body.classList.toggle('beamer');$('btnBeamer').classList.toggle('on');});
+$('ax_log').addEventListener('click',()=>{S.logx=true;$('ax_log').classList.add('on');$('ax_lin').classList.remove('on');render();});
+$('ax_lin').addEventListener('click',()=>{S.logx=false;$('ax_lin').classList.add('on');$('ax_log').classList.remove('on');render();});
+$('btnLang').addEventListener('click',()=>{S.lang=S.lang==='de'?'en':'de';
+  if(L.set){L={set:L.set,...LABELSETS[L.set][S.lang]};fillLabelInputs();}applyStatic();render();});
+
+document.querySelectorAll('.panel').forEach(p=>{
+  p.querySelector(':scope>.ph>.tog').addEventListener('click',()=>{p.classList.toggle('open');updAllBtn();});
+  const ib=p.querySelector(':scope>.ph>.info');
+  if(ib)ib.addEventListener('click',()=>{p.classList.toggle('showinfo');ib.classList.toggle('on');});
+});
+document.querySelectorAll('.kpi .info').forEach(b=>b.addEventListener('click',()=>{b.parentElement.classList.toggle('showinfo');b.classList.toggle('on');}));
+function updAllBtn(){const ps=[...document.querySelectorAll('.panel')];$('btnAll').textContent=ps.every(p=>p.classList.contains('open'))?t('allClose'):t('allOpen');}
+$('btnAll').addEventListener('click',()=>{const ps=[...document.querySelectorAll('.panel')];const open=!ps.every(p=>p.classList.contains('open'));
+  ps.forEach(p=>p.classList.toggle('open',open));updAllBtn();});
+
+function fillLabelInputs(){for(const k of ['k','g','p','n'])$('l_'+k).value=L[k];}
+for(const k of ['k','g','p','n'])$('l_'+k).addEventListener('input',e=>{L.set=null;L[k]=e.target.value.trim()||LABELSETS.krank[S.lang][k];render();});
+function renderChips(){const box=$('labelChips');box.innerHTML=`<span>${t('templates')}</span>`;
+  Object.entries(LABELSETS).filter(([,v])=>v.chip).forEach(([id,v])=>{const ls=v[S.lang];const b=document.createElement('button');
+    b.textContent=ls.name;b.title=`${ls.k} / ${ls.g} · ${ls.p} / ${ls.n}`;b.addEventListener('click',()=>{L={set:id,...ls};fillLabelInputs();render();});box.appendChild(b);});}
+
+function applyStatic(){
+  document.documentElement.lang=S.lang;document.title=t('docTitle');
+  document.querySelectorAll('[data-t]').forEach(el=>{el.innerHTML=t(el.dataset.t);});
+  document.querySelectorAll('.info').forEach(b=>b.title=t('infoTip'));
+  $('btnLang').textContent=t('lang');$('btnLang').lang=S.lang==='de'?'en':'de';
+  [...$('s_N').options].forEach(o=>o.textContent=(+o.value).toLocaleString(loc()));
+  renderChips();updAllBtn();
+}
+
+function renderScen(){
+  const lg=S.lang;
+  $('scenGrid').innerHTML=SCEN.map(sc=>{const lab=LABELSETS[sc.lab][lg],tx=sc[lg],act=S.scen&&S.scen[0]===sc.id;
+    return `<div class="sc ${act?'active':''}">
+      <div class="top"><span class="tag">${tx.tag}</span>${sc.ill?`<span class="badge">${t('illus')}</span>`:''}</div>
+      <h3>${tx.title}</h3><p>${tx.desc}</p>
+      <div class="labels">${t('test')}: ${t('sensA')} ${pct(sc.opts[0].se,0)} · ${t('specA')} ${pct(sc.opts[0].sp,0)} · ${h(lab.k)} / ${h(lab.g)}</div>
+      <div class="opts">${sc.opts.map((o,i)=>`<button data-s="${sc.id}" data-i="${i}" class="${act&&S.scen[1]===i?'on':''}">${o[lg]} <small>· BR ${pct(o.br,0)}</small></button>`).join('')}</div></div>`;}).join('');
+  $('scenGrid').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{
+    const sc=SCEN.find(x=>x.id===b.dataset.s),o=sc.opts[+b.dataset.i];
+    S.br=o.br;S.sens=o.se;S.spec=o.sp;S.scen=[sc.id,+b.dataset.i];fromSensSpec();
+    L={set:sc.lab,...LABELSETS[sc.lab][S.lang]};fillLabelInputs();changed(null,true);}));
+}
+
+const tip=$('tip');
+function showTip(e,html){tip.innerHTML=html;tip.style.opacity=1;const x=e.clientX+14,y=e.clientY+14;
+  tip.style.left=Math.min(x,window.innerWidth-tip.offsetWidth-8)+'px';tip.style.top=Math.min(y,window.innerHeight-tip.offsetHeight-8)+'px';}
+function hideTip(){tip.style.opacity=0;}
+function CAT(){const c=t('cat');return {RP:{n:c.RP,d:`${h(L.k)}, ${q(L.p)}`,f:'var(--krank)'},FN:{n:c.FN,d:`${h(L.k)}, ${q(L.n)}`,f:'var(--krank-l)',s:'var(--krank)'},
+  FP:{n:c.FP,d:`${h(L.g)}, ${q(L.p)}`,f:'var(--gesund)'},RN:{n:c.RN,d:`${h(L.g)}, ${q(L.n)}`,f:'var(--gesund-l)',s:'var(--gesund)'}};}
+
+// ================= Render =================
+function render(){
+  const ppv=ppvOf(S.br,S.sens,S.spec),npv=npvOf(S.br,S.sens,S.spec);
+  renderScen();renderTexts(ppv,npv);
+  $('k_sens').textContent=pct(S.sens);$('k_spec').textContent=pct(S.spec);$('k_ppv').textContent=pct(ppv);$('k_npv').textContent=pct(npv);
+  renderIcons();renderSplit(ppv,npv);renderTable(ppv);renderTree();renderLine(ppv,npv);renderDist();renderROC();renderCost();
+}
+
+function renderTexts(ppv,npv){
+  const K=h(L.k),G=h(L.g);
+  $('lbBr').textContent=`P(${L.k})`;$('lbSens').textContent=`P(+ | ${L.k})`;$('lbSpec').textContent=`P(− | ${L.g})`;
+  $('f_sens').innerHTML=`P(+ | ${K})`;$('f_spec').innerHTML=`P(− | ${G})`;$('f_ppv').innerHTML=`P(${K} | +)`;$('f_npv').innerHTML=`P(${G} | −)`;
+  $('i_sens').innerHTML=t('iSens',L);$('i_spec').innerHTML=t('iSpec',L);$('i_ppv').innerHTML=t('iPpv',L);$('i_npv').innerHTML=t('iNpv',L);
+  $('infoCtl').innerHTML=t('infoCtl',L);$('infoIcons').innerHTML=t('infoIcons',L);$('infoSplit').innerHTML=t('infoSplit',L);$('guessQ').innerHTML=t('guessQ',L);
+  $('peekCtl').textContent=`${t('lBr')} ${pct(S.br)} · ${t('sensA')} ${pct(S.sens)} · ${t('specA')} ${pct(S.spec)}`;
+  $('peekKpi').textContent=`PPV ${pct(ppv)} · NPV ${pct(npv)}`;
+  $('peekLabels').textContent=`${L.k} / ${L.g} · ${L.p} / ${L.n}`;
+  const sc=S.scen&&SCEN.find(x=>x.id===S.scen[0]);
+  $('peekScen').textContent=sc?`${sc[S.lang].title}${sc.opts.length>1?' – '+sc.opts[S.scen[1]][S.lang]:''}`:t('own');
+  $('lineLegend').innerHTML=`<span><i style="background:var(--krank)"></i>PPV: P(${K} | +)</span><span><i style="background:var(--gesund)"></i>NPV: P(${G} | −)</span>`;
+  const c=t('cat');$('distLegend').innerHTML=`<span><i class="sw-rp"></i>${c.RP}</span><span><i class="sw-fn"></i>${c.FN}</span><span><i class="sw-fp"></i>${c.FP}</span><span><i class="sw-rn"></i>${c.RN}</span>`;
+  $('terms').innerHTML=t('terms',L,t('A'));
+}
+
+function renderIcons(){
+  const c=counts(1000),rows=20,sz=12,g=10,C=CAT();
+  const seq=[];for(const k of ['RP','FN','FP','RN'])for(let i=0;i<c[k];i++)seq.push(k);
+  let s='';seq.forEach((k,i)=>{const col=Math.floor(i/rows),row=i%rows;
+    s+=`<rect data-k="${k}" x="${col*sz+1}" y="${row*sz+1}" width="${g}" height="${g}" rx="2" fill="${C[k].f}" ${C[k].s?`stroke="${C[k].s}" stroke-width="1"`:''}/>`;});
+  $('icons').innerHTML=s;
+  $('iconLegend').innerHTML=['RP','FN','FP','RN'].map(k=>`<span><i class="sw-${k.toLowerCase()}"></i>${C[k].n} (${C[k].d}): <b style="color:var(--ink)">${int(c[k])}</b></span>`).join('');
+  $('icons').onmousemove=e=>{const k=e.target.dataset&&e.target.dataset.k;if(!k)return hideTip();showTip(e,`<b>${C[k].n}</b><br>${C[k].d}<br>${t('of1000',int(c[k]))}`);};
+  $('icons').onmouseleave=hideTip;
+}
+
+function bar(parts){return `<div class="bar">${parts.map(p=>`<div style="flex:${Math.max(p.v,0)} 1 0;background:${p.bg};color:${p.fg}">${p.v>=0.2?p.lbl:''}</div>`).join('')}</div>`;}
+function renderSplit(ppv,npv){
+  const c=counts(1000),pos=c.RP+c.FP,neg=c.FN+c.RN,K=h(L.k),G=h(L.g);
+  $('split').innerHTML=
+   `<div class="ttl">${t('result')} ${q(L.p)} <span>${t('of1000',int(pos))}</span></div>`+
+   bar([{v:ppv,bg:'var(--krank)',fg:'#fff',lbl:`${K} ${pct(ppv,0)}`},{v:1-ppv,bg:'var(--gesund)',fg:'#fff',lbl:`${G} ${pct(1-ppv,0)}`}])+
+   `<div class="sub2">${K}: <b>${int(c.RP)}</b> (${pct(ppv)}) · ${G}: <b>${int(c.FP)}</b> (${pct(1-ppv)})</div>`+
+   `<div class="ttl">${t('result')} ${q(L.n)} <span>${t('of1000',int(neg))}</span></div>`+
+   bar([{v:1-npv,bg:'var(--krank-l)',fg:'var(--krank-ink)',lbl:`${K} ${pct(1-npv,0)}`},{v:npv,bg:'var(--gesund-l)',fg:'var(--gesund-ink)',lbl:`${G} ${pct(npv,0)}`}])+
+   `<div class="sub2">${K}: <b>${int(c.FN)}</b> (${pct(1-npv)}) · ${G}: <b>${int(c.RN)}</b> (${pct(npv)})</div>`;
+  const ratio=c.RP>0?c.FP/c.RP:Infinity;
+  let txt=t('take',int(pos),int(c.RP),int(c.FP),L,pct(ppv));
+  if(c.RP>0&&ratio>=1.5)txt+=t('takeRatio',num(ratio,ratio<10?1:0));else if(c.RP===0)txt+=t('takeNone',L);
+  $('takeaway').innerHTML=txt;
+}
+
+function renderTable(ppv){
+  const c=counts(S.N),K=h(L.k),G=h(L.g),A=t('A'),ct=t('cat');
+  $('vft').innerHTML=`<tr><th></th><th>${K}</th><th>${G}</th><th>Σ</th></tr>
+  <tr><th>+ ${q(L.p)}</th><td class="rp"><b>${int(c.RP)}</b><small>${ct.RP}</small></td><td class="fp"><b>${int(c.FP)}</b><small>${ct.FP}</small></td><td class="sum"><b>${int(c.RP+c.FP)}</b></td></tr>
+  <tr><th>− ${q(L.n)}</th><td class="fn"><b>${int(c.FN)}</b><small>${ct.FN}</small></td><td class="rn"><b>${int(c.RN)}</b><small>${ct.RN}</small></td><td class="sum"><b>${int(c.FN+c.RN)}</b></td></tr>
+  <tr><th>Σ</th><td class="sum"><b>${int(c.K)}</b></td><td class="sum"><b>${int(c.G)}</b></td><td class="sum"><b>${int(c.N)}</b></td></tr>`;
+  const r=(a,b)=>a+b>0?pct(a/(a+b)):'–';
+  $('formulas').innerHTML=
+   `<div><span class="lbl">${t('sensA')}</span> = ${A.RP} / (${A.RP} + ${A.FN}) = ${int(c.RP)} / ${int(c.RP+c.FN)} ≈ ${r(c.RP,c.FN)}</div>`+
+   `<div><span class="lbl">${t('specA')}</span> = ${A.RN} / (${A.RN} + ${A.FP}) = ${int(c.RN)} / ${int(c.RN+c.FP)} ≈ ${r(c.RN,c.FP)}</div>`+
+   `<div class="secret"><span class="lbl">PPV</span> = ${A.RP} / (${A.RP} + ${A.FP}) = ${int(c.RP)} / ${int(c.RP+c.FP)} ≈ ${r(c.RP,c.FP)}</div>`+
+   `<div class="secret"><span class="lbl">NPV</span> = ${A.RN} / (${A.RN} + ${A.FN}) = ${int(c.RN)} / ${int(c.RN+c.FN)} ≈ ${r(c.RN,c.FN)}</div>`+
+   `<div class="secret" style="font-size:.92em;color:var(--ink2)">Bayes: PPV = ${num(S.sens,3)}·${num(S.br,3)} / (${num(S.sens,3)}·${num(S.br,3)} + ${num(1-S.spec,3)}·${num(1-S.br,3)}) = <b style="color:var(--ink)">${pct(ppv)}</b></div>`;
+}
+
+function renderTree(){
+  const c=counts(S.N),W=620,A=t('A');
+  const node=(x,y,lbl,val,fill,stroke,fg)=>`<g><rect x="${x-66}" y="${y-22}" width="132" height="44" rx="8" fill="${fill}" stroke="${stroke}" stroke-width="1.2"/>
+    <text x="${x}" y="${y-4}" text-anchor="middle" font-size="11.5" style="fill:${fg}">${h(trunc(lbl,22))}</text>
+    <text x="${x}" y="${y+14}" text-anchor="middle" font-size="16" font-weight="650" style="fill:${fg}">${int(val)}</text></g>`;
+  const edge=(x1,y1,x2,y2,lbl)=>{const mx=(x1+x2)/2,my=(y1+y2)/2;
+    return `<line x1="${x1}" y1="${y1+22}" x2="${x2}" y2="${y2-22}" stroke="var(--axis)" stroke-width="1.5"/><text x="${mx+(x2<x1?-8:8)}" y="${my+4}" text-anchor="${x2<x1?'end':'start'}" font-size="11.5">${lbl}</text>`;};
+  const y0=30,y1=125,y2=222,xr=W/2,xk=165,xg=455,xs=[78,238,382,542];let s='';
+  s+=edge(xr,y0,xk,y1,t('treeBr')+' '+pct(S.br))+edge(xr,y0,xg,y1,pct(1-S.br));
+  s+=edge(xk,y1,xs[0],y2,t('sensA')+' '+pct(S.sens))+edge(xk,y1,xs[1],y2,pct(1-S.sens));
+  s+=edge(xg,y1,xs[2],y2,'1−'+t('specA')+' '+pct(1-S.spec))+edge(xg,y1,xs[3],y2,t('specA')+' '+pct(S.spec));
+  s+=node(xr,y0,t('treePersons'),c.N,'var(--page)','var(--axis)','var(--ink)');
+  s+=node(xk,y1,L.k,c.K,'var(--surface)','var(--krank)','var(--ink)');
+  s+=node(xg,y1,L.g,c.G,'var(--surface)','var(--gesund)','var(--ink)');
+  s+=node(xs[0],y2,`+ ${L.p} (${A.RP})`,c.RP,'var(--krank)','var(--krank)','#fff');
+  s+=node(xs[1],y2,`− ${L.n} (${A.FN})`,c.FN,'var(--krank-l)','var(--krank)','var(--ink)');
+  s+=node(xs[2],y2,`+ ${L.p} (${A.FP})`,c.FP,'var(--gesund)','var(--gesund)','#fff');
+  s+=node(xs[3],y2,`− ${L.n} (${A.RN})`,c.RN,'var(--gesund-l)','var(--gesund)','var(--ink)');
+  s+=`<text x="${W/2}" y="${y2+50}" text-anchor="middle" font-size="12.5" class="secret" style="fill:var(--ink)">PPV = ${A.RP} / (${A.RP} + ${A.FP}) = ${int(c.RP)} / (${int(c.RP)} + ${int(c.FP)})</text>`;
+  $('tree').innerHTML=s;
+}
+
+function renderLine(ppv,npv){
+  const W=600,H=300,m={l:46,r:56,t:14,b:38},iw=W-m.l-m.r,ih=H-m.t-m.b,lo=0.001,hi=0.99;
+  const xs=S.logx?(b=>m.l+(Math.log10(b)-Math.log10(lo))/(Math.log10(hi)-Math.log10(lo))*iw):(b=>m.l+b*iw);
+  const xinv=S.logx?(px=>Math.pow(10,Math.log10(lo)+(px-m.l)/iw*(Math.log10(hi)-Math.log10(lo)))):(px=>(px-m.l)/iw);
+  const ys=v=>m.t+(1-v)*ih;let s='';
+  for(const v of [0,.25,.5,.75,1])s+=`<line x1="${m.l}" x2="${m.l+iw}" y1="${ys(v)}" y2="${ys(v)}" stroke="${v===0?'var(--axis)':'var(--grid)'}"/><text x="${m.l-8}" y="${ys(v)+4}" text-anchor="end" font-size="11">${pct(v,0)}</text>`;
+  const ticks=S.logx?[0.001,0.002,0.005,0.01,0.02,0.05,0.1,0.2,0.5,0.99]:[.1,.2,.3,.4,.5,.6,.7,.8,.9,1];
+  for(const tk of ticks){const x=xs(Math.min(tk,hi));
+    s+=`<line x1="${x}" x2="${x}" y1="${m.t+ih}" y2="${m.t+ih+4}" stroke="var(--axis)"/><text x="${x}" y="${m.t+ih+17}" text-anchor="middle" font-size="11">${(tk*100).toLocaleString(loc(),{maximumFractionDigits:1})}</text>`;}
+  s+=`<text x="${m.l+iw/2}" y="${H-3}" text-anchor="middle" font-size="11.5">${t('lineX')}${S.logx?t('logSfx'):''}</text>`;
+  const pts=[],N=240;
+  for(let i=0;i<=N;i++){const b=S.logx?Math.pow(10,Math.log10(lo)+i/N*(Math.log10(hi)-Math.log10(lo))):lo+i/N*(hi-lo);pts.push([xs(b),ppvOf(b,S.sens,S.spec),npvOf(b,S.sens,S.spec)]);}
+  const path=j=>'M'+pts.map(p=>p[0].toFixed(1)+','+ys(p[j]).toFixed(1)).join('L');
+  s+=`<path d="${path(1)}" fill="none" stroke="var(--krank)" stroke-width="2.5" stroke-linejoin="round"/><path d="${path(2)}" fill="none" stroke="var(--gesund)" stroke-width="2.5" stroke-linejoin="round"/>`;
+  const last=pts[pts.length-1],ly1=ys(last[1]),ly2=ys(last[2]),sep=Math.abs(ly1-ly2)<14?(ly1<ly2?-7:7):0;
+  s+=`<text x="${m.l+iw+6}" y="${ly1+4+sep}" font-size="12" font-weight="600" style="fill:var(--ink)">PPV</text><text x="${m.l+iw+6}" y="${ly2+4-sep}" font-size="12" font-weight="600" style="fill:var(--ink)">NPV</text>`;
+  const cx=xs(S.br);
+  s+=`<line x1="${cx}" x2="${cx}" y1="${m.t}" y2="${m.t+ih}" stroke="var(--ink2)" stroke-dasharray="3 3"/>`;
+  s+=`<circle cx="${cx}" cy="${ys(ppv)}" r="5.5" fill="var(--krank)" stroke="var(--surface)" stroke-width="2"/><circle cx="${cx}" cy="${ys(npv)}" r="5.5" fill="var(--gesund)" stroke="var(--surface)" stroke-width="2"/>`;
+  const right=cx>m.l+iw-120,tx=right?cx-8:cx+8,anc=right?'end':'start',close=Math.abs(ys(ppv)-ys(npv))<16;
+  s+=`<text x="${tx}" y="${ys(ppv)+(close||ppv>0.9?16:-9)}" text-anchor="${anc}" font-size="12" font-weight="600" style="fill:var(--ink)">${pct(ppv)}</text>`;
+  s+=`<text x="${tx}" y="${ys(npv)+(close?-9:(npv>0.9?16:-9))}" text-anchor="${anc}" font-size="12" font-weight="600" style="fill:var(--ink)">${pct(npv)}</text>`;
+  s+=`<g id="hov" style="display:none"><line id="hvl" y1="${m.t}" y2="${m.t+ih}" stroke="var(--muted)"/><circle id="hc1" r="4" fill="var(--krank)"/><circle id="hc2" r="4" fill="var(--gesund)"/></g>`;
+  s+=`<rect x="${m.l}" y="${m.t}" width="${iw}" height="${ih}" fill="transparent" id="hit" style="cursor:crosshair"/>`;
+  const svg=$('line');svg.innerHTML=s;
+  const hit=svg.querySelector('#hit'),hov=svg.querySelector('#hov');
+  const toB=e=>{const pt=svg.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;return clamp(xinv(pt.matrixTransform(svg.getScreenCTM().inverse()).x),lo,hi);};
+  hit.onmousemove=e=>{const b=toB(e),pv=ppvOf(b,S.sens,S.spec),nv=npvOf(b,S.sens,S.spec);hov.style.display='';
+    const l=svg.querySelector('#hvl');l.setAttribute('x1',xs(b));l.setAttribute('x2',xs(b));
+    const c1=svg.querySelector('#hc1'),c2=svg.querySelector('#hc2');c1.setAttribute('cx',xs(b));c1.setAttribute('cy',ys(pv));c2.setAttribute('cx',xs(b));c2.setAttribute('cy',ys(nv));
+    showTip(e,`${t('lBr')} ${pct(b)}<br><b>PPV ${pct(pv)}</b><br><b>NPV ${pct(nv)}</b><br><span style="opacity:.7">${t('clickBr')}</span>`);};
+  hit.onmouseleave=()=>{hov.style.display='none';hideTip();};
+  hit.onclick=e=>{S.br=toB(e);changed();};
+}
+
+let distGeom=null;
+function distDomain(){return [Math.min(0,S.d)-3.6,Math.max(0,S.d)+3.6];}
+function renderDist(){
+  const W=600,H=250,m={l:14,r:14,t:26,b:34},iw=W-m.l-m.r,ih=H-m.t-m.b;
+  const [xmin,xmax]=distDomain(),xs=x=>m.l+(x-xmin)/(xmax-xmin)*iw;
+  const wg=S.weight?1-S.br:1,wk=S.weight?S.br:1,ymax=0.4*Math.max(wg,wk)*1.05,ys=y=>m.t+ih-y/ymax*ih;
+  const n=220,step=(xmax-xmin)/n;
+  function area(mu,w,a,b){a=Math.max(a,xmin);b=Math.min(b,xmax);if(b<=a)return '';
+    let d=`M${xs(a).toFixed(1)},${ys(0)}`;const k=Math.max(2,Math.ceil((b-a)/step));
+    for(let i=0;i<=k;i++){const x=a+(b-a)*i/k;d+=`L${xs(x).toFixed(1)},${ys(w*pdf(x-mu)).toFixed(1)}`;}return d+`L${xs(b).toFixed(1)},${ys(0)}Z`;}
+  function line(mu,w){let d='';for(let i=0;i<=n;i++){const x=xmin+i*step;d+=(i?'L':'M')+xs(x).toFixed(1)+','+ys(w*pdf(x-mu)).toFixed(1);}return d;}
+  const c=S.c;let s='';
+  s+=`<path d="${area(0,wg,-99,c)}" fill="var(--gesund-l)" opacity=".9"/><path d="${area(S.d,wk,-99,c)}" fill="var(--krank-l)" opacity=".9"/>`;
+  s+=`<path d="${area(0,wg,c,99)}" fill="var(--gesund)" opacity=".75"/><path d="${area(S.d,wk,c,99)}" fill="var(--krank)" opacity=".75"/>`;
+  s+=`<path d="${line(0,wg)}" fill="none" stroke="var(--gesund)" stroke-width="2"/><path d="${line(S.d,wk)}" fill="none" stroke="var(--krank)" stroke-width="2"/>`;
+  s+=`<line x1="${m.l}" x2="${m.l+iw}" y1="${ys(0)}" y2="${ys(0)}" stroke="var(--axis)"/>`;
+  for(let x=Math.ceil(xmin);x<=xmax;x++)s+=`<text x="${xs(x)}" y="${ys(0)+15}" text-anchor="middle" font-size="10.5">${x}</text>`;
+  s+=`<text x="${m.l+iw/2}" y="${H-2}" text-anchor="middle" font-size="11.5">${t('distX',h(trunc(L.g,24)))}</text>`;
+  const gy=ys(wg*0.4),ky=ys(wk*0.4);
+  s+=`<text x="${xs(0)}" y="${Math.max(gy-6,12)}" text-anchor="middle" font-size="12" font-weight="600" style="fill:var(--gesund-ink)">${h(trunc(L.g,24))}</text>`;
+  s+=`<text x="${xs(S.d)}" y="${Math.max(ky-6,12)+(Math.abs(xs(S.d)-xs(0))<90&&Math.abs(ky-gy)<14?-14:0)}" text-anchor="middle" font-size="12" font-weight="600" style="fill:var(--krank-ink)">${h(trunc(L.k,24))}</text>`;
+  const cx=clamp(xs(c),m.l,m.l+iw);
+  s+=`<line x1="${cx}" x2="${cx}" y1="${m.t-14}" y2="${ys(0)}" stroke="var(--ink)" stroke-width="2"/><rect x="${cx-7}" y="${m.t-22}" width="14" height="14" rx="3" fill="var(--ink)"/>`;
+  s+=`<text x="${cx+(cx>W-170?-12:12)}" y="${m.t-11}" text-anchor="${cx>W-170?'end':'start'}" font-size="11.5" style="fill:var(--ink)">${t('cutLbl',num(c,2))}</text>`;
+  s+=`<rect x="0" y="0" width="${W}" height="${H}" fill="transparent"/>`;
+  $('dist').innerHTML=s;distGeom={xmin,xmax,m,iw};
+}
+(function(){const svg=$('dist');let drag=false;
+  function setFrom(e){if(!distGeom)return;const pt=svg.createSVGPoint();pt.x=e.clientX;pt.y=e.clientY;const p=pt.matrixTransform(svg.getScreenCTM().inverse());
+    const g=distGeom;S.c=clamp(g.xmin+(p.x-g.m.l)/g.iw*(g.xmax-g.xmin),-4,9);fromCut();changed();}
+  svg.addEventListener('pointerdown',e=>{drag=true;svg.setPointerCapture(e.pointerId);setFrom(e);});
+  svg.addEventListener('pointermove',e=>{if(drag)setFrom(e);});
+  svg.addEventListener('pointerup',()=>drag=false);svg.addEventListener('pointercancel',()=>drag=false);
+})();
+
+function renderROC(){
+  const W=220,m={l:30,r:8,t:8,b:30},iw=W-m.l-m.r,ih=W-m.t-m.b,xs=v=>m.l+v*iw,ys=v=>m.t+(1-v)*ih;let s='';
+  for(const v of [0,.5,1])s+=`<line x1="${xs(0)}" x2="${xs(1)}" y1="${ys(v)}" y2="${ys(v)}" stroke="${v?'var(--grid)':'var(--axis)'}"/><line y1="${ys(0)}" y2="${ys(1)}" x1="${xs(v)}" x2="${xs(v)}" stroke="${v?'var(--grid)':'var(--axis)'}"/><text x="${m.l-5}" y="${ys(v)+4}" text-anchor="end" font-size="10">${v*100}</text><text x="${xs(v)}" y="${ys(0)+13}" text-anchor="middle" font-size="10">${v*100}</text>`;
+  s+=`<line x1="${xs(0)}" y1="${ys(0)}" x2="${xs(1)}" y2="${ys(1)}" stroke="var(--muted)" stroke-dasharray="3 3"/>`;
+  let d='';for(let i=0;i<=200;i++){const c=9-i*0.13;d+=(i?'L':'M')+xs(1-Phi(c)).toFixed(1)+','+ys(1-Phi(c-S.d)).toFixed(1);}
+  s+=`<path d="${d}" fill="none" stroke="var(--ink)" stroke-width="2"/>`;
+  const o=optimum();if(!o.useless)s+=`<circle cx="${xs(1-Phi(o.c))}" cy="${ys(1-Phi(o.c-S.d))}" r="7" fill="none" stroke="var(--ink)" stroke-width="1.5"/>`;
+  s+=`<circle cx="${xs(1-S.spec)}" cy="${ys(S.sens)}" r="6" fill="var(--krank)" stroke="var(--surface)" stroke-width="2"/>`;
+  s+=`<text x="${m.l+iw/2}" y="${W-2}" text-anchor="middle" font-size="10.5">${t('rocX')}</text><text transform="translate(9,${m.t+ih/2}) rotate(-90)" text-anchor="middle" font-size="10.5">${t('rocY')}</text>`;
+  $('roc').innerHTML=s;
+  $('rocText').innerHTML=t('rocTxt',num(S.d,2),num(Phi(S.d/Math.SQRT2),3));
+}
+
+function renderCost(){
+  const A=t('A'),ct=t('cat'),k=S.costs;
+  for(const key of ['RP','FP','FN','RN'])$('al_'+key).textContent=`${ct[key]} (${A[key]})`;
+  // Verhältnistext
+  let rt;if(S.costMode==='custom')rt=t('ratioCustom');else if(S.ratio===1)rt=t('ratioEq');
+  else rt=S.ratio>1?t('ratioFN',num(S.ratio,1)):t('ratioFP',num(1/S.ratio,1));
+  $('ratioTxt').innerHTML=rt;
+  // Bedeutung
+  const sc=S.scen&&SCEN.find(x=>x.id===S.scen[0]);
+  const fp=sc&&L.set===sc.lab?sc[S.lang].fp:t('meanFPgen',L),fn=sc&&L.set===sc.lab?sc[S.lang].fn:t('meanFNgen',L);
+  $('meaning').innerHTML=`<p class="note" style="margin:0;color:var(--ink2)">${t('meanTitle',sc&&L.set===sc.lab?sc[S.lang].title:null)}</p>
+    <div><i class="sw sw-fp"></i><span><b>${ct.FP}:</b> ${fp}</span></div>
+    <div><i class="sw sw-fn"></i><span><b>${ct.FN}:</b> ${fn}</span></div>
+    <div class="disc">${t('meanDisc')}</div>`;
+  // Tabelle (gerundete Häufigkeiten wie im Icon-Array)
+  const c=counts(1000),o=optimum();
+  const row=key=>`<tr><td><i class="sw sw-${key.toLowerCase()}" style="vertical-align:-1px;margin-right:6px"></i>${ct[key]}</td><td>${int(c[key])}</td><td>${num(k[key],1)}</td><td>${num(c[key]*k[key],0)}</td></tr>`;
+  const tot=['RP','FP','FN','RN'].reduce((s,key)=>s+c[key]*k[key],0);
+  const hd=t('cbHead');
+  $('costTab').innerHTML=`<tr style="color:var(--muted);font-size:.9em"><td>${hd[0]}</td><td>${hd[1]}</td><td>${hd[2]}</td><td>${hd[3]}</td></tr>`+
+    ['FP','FN','RP','RN'].map(row).join('')+
+    `<tr class="tot"><td colspan="3">${t('cbTot')}</td><td>${num(tot,0)}</td></tr>`+
+    `<tr class="cmp"><td colspan="3">${t('cbAllP')}</td><td>${num(o.allP,0)}</td></tr>`+
+    `<tr class="cmp"><td colspan="3">${t('cbAllN')}</td><td>${num(o.allN,0)}</td></tr>`;
+  // Kurve
+  const W=600,H=240,m={l:54,r:14,t:16,b:36},iw=W-m.l-m.r,ih=H-m.t-m.b;
+  const [xmin,xmax]=distDomain(),xs=x=>m.l+(x-xmin)/(xmax-xmin)*iw;
+  const pts=[];for(let i=0;i<=240;i++){const x=xmin+(xmax-xmin)*i/240;pts.push([x,expCost(x)]);}
+  let ymin=Math.min(0,...pts.map(p=>p[1]),o.allP,o.allN),ymax=Math.max(...pts.map(p=>p[1]),o.allP,o.allN);
+  if(ymax-ymin<1e-9)ymax=ymin+1;const pad=(ymax-ymin)*.08;ymax+=pad;if(ymin<0)ymin-=pad;
+  const ys=v=>m.t+(1-(v-ymin)/(ymax-ymin))*ih;
+  const nice=(()=>{const r=(ymax-ymin)/4,p=Math.pow(10,Math.floor(Math.log10(r))),f=r/p;return (f<1.5?1:f<3.5?2:f<7.5?5:10)*p;})();
+  let s='';
+  for(let v=Math.ceil(ymin/nice)*nice;v<=ymax;v+=nice)s+=`<line x1="${m.l}" x2="${m.l+iw}" y1="${ys(v)}" y2="${ys(v)}" stroke="${Math.abs(v)<1e-9?'var(--axis)':'var(--grid)'}"/><text x="${m.l-6}" y="${ys(v)+4}" text-anchor="end" font-size="10.5">${num(v,0)}</text>`;
+  for(let x=Math.ceil(xmin);x<=xmax;x++)s+=`<text x="${xs(x)}" y="${m.t+ih+15}" text-anchor="middle" font-size="10.5">${x}</text>`;
+  s+=`<text x="${m.l+iw/2}" y="${H-3}" text-anchor="middle" font-size="11.5">${t('costX')}</text>`;
+  s+=`<text transform="translate(12,${m.t+ih/2}) rotate(-90)" text-anchor="middle" font-size="10.5">${t('costY')}</text>`;
+  s+=`<path d="M${pts.map(p=>xs(p[0]).toFixed(1)+','+ys(p[1]).toFixed(1)).join('L')}" fill="none" stroke="var(--ink)" stroke-width="2.2" stroke-linejoin="round"/>`;
+  const cc=clamp(S.c,xmin,xmax);
+  s+=`<line x1="${xs(cc)}" x2="${xs(cc)}" y1="${m.t}" y2="${m.t+ih}" stroke="var(--ink2)" stroke-dasharray="3 3"/>`;
+  s+=`<circle cx="${xs(cc)}" cy="${ys(expCost(S.c))}" r="5.5" fill="var(--krank)" stroke="var(--surface)" stroke-width="2"/>`;
+  s+=`<text x="${xs(cc)+(xs(cc)>W-110?-8:8)}" y="${m.t+10}" text-anchor="${xs(cc)>W-110?'end':'start'}" font-size="11" style="fill:var(--ink2)">${t('curLbl')}</text>`;
+  if(!o.useless&&o.c>=xmin&&o.c<=xmax){s+=`<circle cx="${xs(o.c)}" cy="${ys(o.v)}" r="7" fill="none" stroke="var(--ink)" stroke-width="1.5"/>`;
+    s+=`<text x="${xs(o.c)}" y="${ys(o.v)-12}" text-anchor="middle" font-size="11" font-weight="600" style="fill:var(--ink)">${t('optLbl')}</text>`;}
+  $('costChart').innerHTML=s;
+  // Optimum-Text
+  if(o.useless){const w=o.allP<=o.allN?q(L.p):q(L.n);$('optTxt').innerHTML=t('optNone',w);$('btnOpt').disabled=true;}
+  else{$('optTxt').innerHTML=t('optTxt',num(o.c,2),pct(1-Phi(o.c-S.d)),pct(Phi(o.c)),num(o.v,0));$('btnOpt').disabled=false;}
+  const rr=S.costMode==='custom'?'–':(S.ratio>=1?`${num(S.ratio,1)} : 1`:`1 : ${num(1/S.ratio,1)}`);
+  $('peekCost').textContent=t('peekCost',rr,num(tot,0));
+}
+
+fillLabelInputs();S.scen=['grund',0];fromSensSpec();syncInputs();applyStatic();render();
+})();
+</script>
+</body>
+</html>
